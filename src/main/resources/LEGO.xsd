@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+<!-- Version 2012/11/15 -->
+
+	<xs:element name="legoList">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="groupName" type="xs:string" />
+				<xs:element name="legoListUUID" type="UUID" />
+				<xs:element name="groupDescription" type="xs:string" minOccurs="0" />
+				<xs:element ref="lego" maxOccurs="unbounded" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="lego">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="legoUUID" type="UUID" />
+				<xs:element ref="stamp" />
+				<xs:element ref="pncs" />
+				<xs:element ref="assertion" minOccurs="1" maxOccurs="unbounded" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="assertion">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="assertionUUID" type="UUID" />
+				<xs:element ref="discernible" />
+				<xs:element ref="qualifier" />
+				<xs:element ref="value" />
+				<xs:element ref="timing" minOccurs="0" />
+				<xs:element ref="assertionComponents" minOccurs="0" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:simpleType name="UUID">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:element name="pncs">
+		<xs:complexType>
+			<xs:attribute name="id" use="required" type="xs:int" />
+			<xs:attribute name="name" use="required" type="xs:string" />
+			<xs:attribute name="value" use="required" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="assertionComponent">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="assertionUUID" type="UUID"/>
+				<xs:element ref="type"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	<xs:element name="type">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="concept"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="assertionComponents">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element maxOccurs="unbounded" ref="assertionComponent" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="concept">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="rel" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute name="sctid" use="optional" type="xs:long" />  <!-- Ideally, I would say that at least one of the IDs must exist, but there isn't a good way to do that in schema -->
+			<xs:attribute name="uuid" use="optional" type="UUID" />
+			<xs:attribute name="desc" use="required" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="discernible">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="concept"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="qualifier">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="concept" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="value">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:choice>
+					<xs:element ref="concept" />
+					<xs:element ref="measurement" />
+				</xs:choice>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="rel">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="type"/>
+				<xs:element ref="destination"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	<xs:element name="destination">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:choice>
+					<xs:element ref="concept" />
+					<xs:element ref="measurement" />
+				</xs:choice>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="timing">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element minOccurs="0" ref="measurement" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:simpleType name="measurementString">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="DOB" />
+			<xs:enumeration value="NOW" />
+			<xs:enumeration value="Date of onset (observable entity)" />
+			<xs:enumeration value="start active service" />
+			<xs:enumeration value="end active service" />
+			<xs:enumeration value="several" />
+			<xs:enumeration value="Date of event (observable entity)" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:element name="measurement">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="units" minOccurs="0" maxOccurs="1" />
+				<xs:choice>
+					<xs:element name="point" type="point"/>
+					<xs:element ref="interval" />
+				</xs:choice>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:complexType name="bound">
+		<xs:sequence>
+			<!-- I'd like to define that at least one of these must exist, but when you do that the really cryptic way that xml schema requires, it makes the generated jaxb really ugly. -->
+			<xs:element name="lowerPoint" type="point"  minOccurs="0"/>
+			<xs:element name="upperPoint" type="point" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="interval">
+		<xs:complexType>
+			<xs:sequence> 
+				<!-- I'd like to define that at least one of these must exist, but when you do that the really cryptic way that xml schema requires, it makes the generated jaxb really ugly. -->
+				<xs:choice minOccurs="0">
+					<xs:element name="lowerBound" type="bound"/>
+					<xs:element name="lowerPoint" type="point"/>
+				</xs:choice>
+				<xs:choice minOccurs="0">
+					<xs:element name="upperBound" type="bound"/>
+					<xs:element name="upperPoint" type="point"/>
+				</xs:choice>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	<xs:complexType name="point">
+		<xs:sequence>
+			<xs:choice>
+				<xs:element name="numericValue" type="xs:float" />
+				<xs:element name="stringValue" type="measurementString" />
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="inclusive" type="xs:boolean"/>
+	</xs:complexType>
+
+	<xs:element name="units">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="concept" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="stamp">
+		<xs:complexType>
+			<xs:attribute name="status" use="optional" type="xs:string" />
+			<xs:attribute name="time" use="optional" type="xs:dateTime" />
+			<xs:attribute name="author" use="optional" type="xs:string" />
+			<xs:attribute name="module" use="optional" type="xs:string" />
+			<xs:attribute name="path" use="optional" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+
+</xs:schema>
