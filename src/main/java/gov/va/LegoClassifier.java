@@ -17,8 +17,8 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import au.csiro.ontology.Factory;
+import au.csiro.ontology.IOntology;
 import au.csiro.ontology.Node;
-import au.csiro.ontology.Taxonomy;
 import au.csiro.ontology.axioms.IAxiom;
 import au.csiro.ontology.classification.IReasoner;
 import au.csiro.ontology.model.IConcept;
@@ -59,7 +59,7 @@ public class LegoClassifier
         }
         
         // The taxonomy contains the inferred hierarchy
-        Taxonomy<String> t = reasoner.getTaxonomy();
+        IOntology<String> t = reasoner.getClassifiedOntology();
 
         for (String s : assertionIds)
         {
@@ -104,18 +104,18 @@ public class LegoClassifier
 
             String id = generateUUID(a);
             assertionIds.add(id);
-            IConcept legoConcept = f.createConcept(id);
+            IConcept assertionConcept = f.createConcept(id);
 
             // Discernibile
-            process(axioms, a.getDiscernible().getConcept(), legoConcept);
+            process(axioms, a.getDiscernible().getConcept(), assertionConcept);
 
             // Qualifier
-            process(axioms, a.getQualifier().getConcept(), legoConcept);
+            process(axioms, a.getQualifier().getConcept(), assertionConcept);
 
             // Value
             if (a.getValue().getConcept() != null)
             {
-                process(axioms, a.getValue().getConcept(), legoConcept);
+                process(axioms, a.getValue().getConcept(), assertionConcept);
             }
             else
             {
@@ -126,13 +126,14 @@ public class LegoClassifier
         reasoner.classify(axioms);
     }
 
-    private void process(Set<IAxiom> axioms, Concept c, IConcept legoConcept)
+    private void process(Set<IAxiom> axioms, Concept dqvFocusConcept, IConcept assertionConcept)
     {
-        IConcept classifierConcept = f.createConcept(getValuesInConcept(c));
-        if (c.getRel() != null)
+        IConcept focusConcept = f.createConcept(getValuesInConcept(dqvFocusConcept));
+        
+        if (dqvFocusConcept.getRel() != null)
         {
             List<IConcept> rhs = new ArrayList<IConcept>();
-            for (Rel r : c.getRel())
+            for (Rel r : dqvFocusConcept.getRel())
             {
                 IConcept temp = createExistential(r);
                 if (temp != null)
@@ -142,13 +143,21 @@ public class LegoClassifier
             }
             if (rhs.size() > 0)
             {
-                rhs.add(0, classifierConcept);
-                axioms.add(f.createConceptInclusion(legoConcept, f.createConjunction(rhs.toArray(new IConcept[0]))));
+                rhs.add(0, focusConcept);
+                IConcept conjunction = f.createConjunction(rhs.toArray(new IConcept[0]));
+                axioms.add(f.createConceptInclusion(assertionConcept, conjunction));
+                axioms.add(f.createConceptInclusion(conjunction, assertionConcept));
             }
             else
             {
-                axioms.add(f.createConceptInclusion(legoConcept, classifierConcept));
+                axioms.add(f.createConceptInclusion(assertionConcept, focusConcept));
+                axioms.add(f.createConceptInclusion(focusConcept, assertionConcept));
             }
+        }
+        else
+        {
+            axioms.add(f.createConceptInclusion(assertionConcept, focusConcept));
+            axioms.add(f.createConceptInclusion(focusConcept, assertionConcept));
         }
     }
 
