@@ -6,6 +6,7 @@ import gov.va.legoSchema.Concept;
 import gov.va.legoSchema.Interval;
 import gov.va.legoSchema.Lego;
 import gov.va.legoSchema.LegoList;
+import gov.va.legoSchema.Measurement;
 import gov.va.legoSchema.Point;
 import gov.va.legoSchema.Rel;
 import java.io.File;
@@ -22,7 +23,10 @@ import au.csiro.ontology.Node;
 import au.csiro.ontology.axioms.IAxiom;
 import au.csiro.ontology.classification.IReasoner;
 import au.csiro.ontology.model.IConcept;
+import au.csiro.ontology.model.ILiteral;
+import au.csiro.ontology.model.INamedFeature;
 import au.csiro.ontology.model.INamedRole;
+import au.csiro.ontology.model.Operator;
 import au.csiro.snorocket.core.SnorocketReasoner;
 
 public class LegoClassifier
@@ -163,18 +167,72 @@ public class LegoClassifier
 
     private IConcept createExistential(Rel r)
     {
+        //TODO - type is (maybe) not supposed to support nested concepts... not sure - still waiting confirmation.
         INamedRole<String> typeConcept = f.createRole(getValuesInConcept(r.getType().getConcept()));
-        // TODO handle nested concepts under type and dest
         if (r.getDestination().getConcept() != null)
         {
             IConcept destConcept = f.createConcept(getValuesInConcept(r.getDestination().getConcept()));
-            return f.createExistential(typeConcept, destConcept);
+            
+            ArrayList<IConcept> nestedExistentials = new ArrayList<IConcept>();
+            if (r.getDestination().getConcept().getRel() != null)
+            {
+                for (Rel nestedRel : r.getDestination().getConcept().getRel())
+                {
+                    nestedExistentials.add(createExistential(nestedRel));
+                }
+            }
+            
+            if (nestedExistentials.size() > 0)
+            {
+                nestedExistentials.add(0, destConcept);
+                return f.createExistential(typeConcept, f.createConjunction(nestedExistentials.toArray(new IConcept[0])));
+            }
+            else
+            {
+                return f.createExistential(typeConcept, destConcept);
+            }
+        }
+        else if (r.getDestination().getMeasurement() != null)
+        {
+            Measurement m = r.getDestination().getMeasurement();
+            IConcept unitsConcept = null;
+            if (m.getUnits() != null && m.getUnits().getConcept() != null)
+            {
+                //units are optional
+                unitsConcept = f.createConcept(getValuesInConcept(m.getUnits().getConcept()));
+            }
+            
+            if (m.getPoint() != null)
+            {
+                Point p = m.getPoint();
+                if (p.getNumericValue() != null)
+                {
+                    ILiteral literal = f.createDoubleLiteral(p.getNumericValue());
+                    
+                    INamedFeature<String> feature = f.createFeature("equals:" + p.getNumericValue());
+                    IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
+                    
+                    return f.createExistential(typeConcept, (unitsConcept == null ? data : f.createConjunction(unitsConcept, data)));
+                }
+                else if (p.getStringValue() != null)
+                {
+                    throw new RuntimeException("string value not yet handled in measurement");
+                }
+            }
+            else if (m.getInterval() != null)
+            {
+                throw new RuntimeException("measurement interval not yet handeled");
+            }
+            else
+            {
+                throw new RuntimeException("invalid measurement");
+            }
         }
         else
         {
-            logger.error("measurement destinations not yet handeled");
-            return null;
+            throw new RuntimeException("invalid rel");
         }
+        throw new RuntimeException("oops");
     }
 
     /**
