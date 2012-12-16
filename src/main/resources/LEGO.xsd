@@ -1,7 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
 
-<!-- Version 2012/11/15 -->
+<!-- Version 2012/12/14 -->
+<!-- 
+	Changelog:
+	12/14	- Got rid of 'expressionConjuction' - no longer necessary now that we have the 'expression' type.
+	12/13 	- Moved relationships from concept to a new type 'expression'.  'discernible', 'qualifier', 'value' and 'destination'
+				have their target types changed to 'expression'.  'type' and 'units' remain as concept - so type and units can no longer
+				have nested rels.
+			- Renamed 'conceptConjunction' to 'expressionConjunction'.  Reordered the elements within for consistency.
+	12/07 	- Renamed 'rel' to 'relation' for consistency.  
+			- Added 'relationGroup' as a possible target of 'concept', instead of just 'relation'.  
+			- Created 'conceptConjunction' - added as a possible target for 'discernible', 'qualifier', 'value', 'destination'
+			- Created 'boolean' and 'text' as new types - can be used within a 'value' or a 'destination'
+			- Renamed 'stringValue' to 'stringConstant' within 'point' to make it more clear, help differentiate from the new literal
+				'text' type which allows any string.
+	11/28 	- removed minOccur=0 from measurement in timing - it didn't make sense.  If you have a timing, you need a measurement.
+	11/26 	- added a UUID to the stamp for lego editor sanity - otherwise, there was nothing to define a unique lego.  
+				Now, stampUUID + legoUUID is globally unique.
+ -->
 
 	<xs:element name="legoList">
 		<xs:complexType>
@@ -76,22 +93,32 @@
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
+	
+	<xs:element name="expression">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:choice>
+					<xs:element ref="concept"/>
+					<xs:element ref="expression" minOccurs="2" maxOccurs="unbounded"/>
+				</xs:choice>
+				<xs:element ref="relation" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="relationGroup" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
 
 	<xs:element name="concept">
 		<xs:complexType>
-			<xs:sequence>
-				<xs:element ref="rel" minOccurs="0" maxOccurs="unbounded"/>
-			</xs:sequence>
 			<xs:attribute name="sctid" use="optional" type="xs:long" />  <!-- Ideally, I would say that at least one of the IDs must exist, but there isn't a good way to do that in schema -->
 			<xs:attribute name="uuid" use="optional" type="UUID" />
 			<xs:attribute name="desc" use="required" type="xs:string" />
 		</xs:complexType>
 	</xs:element>
-
+	
 	<xs:element name="discernible">
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element ref="concept"/>
+				<xs:element ref="expression"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
@@ -99,7 +126,7 @@
 	<xs:element name="qualifier">
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element ref="concept" />
+				<xs:element ref="expression"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
@@ -108,14 +135,16 @@
 		<xs:complexType>
 			<xs:sequence>
 				<xs:choice>
-					<xs:element ref="concept" />
+					<xs:element ref="expression"/>
+					<xs:element ref="text" />
+					<xs:element ref="boolean" />
 					<xs:element ref="measurement" />
 				</xs:choice>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
 
-	<xs:element name="rel">
+	<xs:element name="relation">
 		<xs:complexType>
 			<xs:sequence>
 				<xs:element ref="type"/>
@@ -124,11 +153,21 @@
 		</xs:complexType>
 	</xs:element>
 	
+	<xs:element name="relationGroup">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="relation" minOccurs="1" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
 	<xs:element name="destination">
 		<xs:complexType>
 			<xs:sequence>
 				<xs:choice>
-					<xs:element ref="concept" />
+					<xs:element ref="expression"/>
+					<xs:element ref="text" />
+					<xs:element ref="boolean" />
 					<xs:element ref="measurement" />
 				</xs:choice>
 			</xs:sequence>
@@ -138,12 +177,12 @@
 	<xs:element name="timing">
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element minOccurs="0" ref="measurement" />
+				<xs:element ref="measurement" />
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
 
-	<xs:simpleType name="measurementString">
+	<xs:simpleType name="measurementConstant">
 		<xs:restriction base="xs:string">
 			<xs:enumeration value="DOB" />
 			<xs:enumeration value="NOW" />
@@ -155,6 +194,10 @@
 		</xs:restriction>
 	</xs:simpleType>
 
+	<xs:element name="text" type="xs:string"/>
+
+    <xs:element name="boolean" type="xs:boolean"/>
+    
 	<xs:element name="measurement">
 		<xs:complexType>
 			<xs:sequence>
@@ -195,7 +238,7 @@
 		<xs:sequence>
 			<xs:choice>
 				<xs:element name="numericValue" type="xs:float" />
-				<xs:element name="stringValue" type="measurementString" />
+				<xs:element name="stringConstant" type="measurementConstant" />
 			</xs:choice>
 		</xs:sequence>
 		<xs:attribute name="inclusive" type="xs:boolean"/>
@@ -204,7 +247,7 @@
 	<xs:element name="units">
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element ref="concept" />
+				<xs:element ref="concept"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
@@ -216,6 +259,7 @@
 			<xs:attribute name="author" use="optional" type="xs:string" />
 			<xs:attribute name="module" use="optional" type="xs:string" />
 			<xs:attribute name="path" use="optional" type="xs:string" />
+			<xs:attribute name="uuid" use="optional" type="UUID" />  <!--  Adding this for sanity in the GUI - uniquely identifies the stamp, this UUID plus lego UUID uniquely identifies a lego -->
 		</xs:complexType>
 	</xs:element>
 

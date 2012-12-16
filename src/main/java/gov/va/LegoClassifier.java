@@ -3,12 +3,14 @@ package gov.va;
 import gov.va.legoSchema.Assertion;
 import gov.va.legoSchema.Bound;
 import gov.va.legoSchema.Concept;
+import gov.va.legoSchema.Expression;
 import gov.va.legoSchema.Interval;
 import gov.va.legoSchema.Lego;
 import gov.va.legoSchema.LegoList;
 import gov.va.legoSchema.Measurement;
 import gov.va.legoSchema.Point;
-import gov.va.legoSchema.Rel;
+import gov.va.legoSchema.Relation;
+import gov.va.legoSchema.RelationGroup;
 import gov.va.legoSchema.Timing;
 import java.io.File;
 import java.util.ArrayList;
@@ -108,38 +110,31 @@ public class LegoClassifier
             // TODO assertion components
             // TODO do I have to do the equivalence thing whenever I make a conjunction? 
             
-            // Discernibile
-            if (a.getDiscernible().getConcept() != null)
-            {
-                process("D", a.getDiscernible().getConcept());
-            }
-            else if (false)
-            {
-                //TODO conjunction
-            }
-
-            // Qualifier
-            if (a.getQualifier().getConcept() != null)
-            {
-                process("Q", a.getQualifier().getConcept());
-            }
-            else if (false)
-            {
-                //TODO conjunction
-            }
-
+            process("D", a.getDiscernible().getExpression());
+            process("Q", a.getQualifier().getExpression());
+            
             // Value
-            if (a.getValue().getConcept() != null)
+            if (a.getValue().getExpression() != null)
             {
-                process("V", a.getValue().getConcept());
-            }
-            else if (false)
-            {
-                //TODO conjunction
+                process("V", a.getValue().getExpression());
             }
             else if (a.getValue().getMeasurement() != null)
             {
                 processMeasurement("Value", a.getValue().getMeasurement());
+            }
+            else if (a.getValue().getText() != null && a.getValue().getText().length() > 0)
+            {
+                ILiteral literal = f.createStringLiteral(a.getValue().getText());
+                INamedFeature<String> feature = f.createFeature("ValueText:" + a.getValue().getText());
+                f.createDatatype(feature, Operator.EQUALS, literal);
+                //TODO do I need to do anything else with this text?
+            }
+            else if (a.getValue().isBoolean() != null)
+            {
+                ILiteral literal = f.createBooleanLiteral(a.getValue().isBoolean());
+                INamedFeature<String> feature = f.createFeature("ValueBoolean:" + a.getValue().isBoolean());
+                f.createDatatype(feature, Operator.EQUALS, literal);
+                //TODO do I need to do anything else with this boolean?
             }
             
             //Timing
@@ -155,32 +150,93 @@ public class LegoClassifier
         }
     }
 
-    private void process(String type, Concept dqvFocusConcept)
+    private IConcept process(String type, Expression dqvFocusExpression)
     {
         List<IConcept> rhs = new ArrayList<IConcept>();
-        IConcept focusConcept = f.createConcept(getIdForConcept(dqvFocusConcept)); 
-        if (dqvFocusConcept.getRel() != null)
+        
+        IConcept focusConcept;
+        if (dqvFocusExpression == null)
         {
-            for (Rel r : dqvFocusConcept.getRel())
+            return null;
+        }
+        else if (dqvFocusExpression.getConcept() != null)
+        {
+            focusConcept = f.createConcept(getIdForConcept(dqvFocusExpression.getConcept()));
+        }
+        else if (dqvFocusExpression.getExpression().size() > 0)
+        {
+            List<IConcept> conjunctionConcepts = new ArrayList<IConcept>(dqvFocusExpression.getExpression().size());
+            for (Expression e : dqvFocusExpression.getExpression())
             {
-                IConcept temp = createExistential(r);
+                conjunctionConcepts.add(process(type, e));
+            }
+            focusConcept = f.createConjunction(conjunctionConcepts.toArray(new IConcept[conjunctionConcepts.size()]));
+            
+            IConcept conjunctionEquivConcept = f.createConcept(generateUUID(type, dqvFocusExpression.getExpression().toArray(new Expression[0])));
+            
+            axioms.add(f.createConceptInclusion(conjunctionEquivConcept, focusConcept));
+            axioms.add(f.createConceptInclusion(focusConcept, conjunctionEquivConcept));
+        }
+        else
+        {
+            throw new RuntimeException("unexpected case");
+        }
+        
+        if (dqvFocusExpression.getRelation() != null)
+        {
+            for (Relation r : dqvFocusExpression.getRelation())
+            {
+                IConcept temp = createExistential(type, r);
                 if (temp != null)
                 {
                     rhs.add(temp);
                 }
             }
-            if (rhs.size() > 0)
+        }
+        if (dqvFocusExpression.getRelationGroup() != null)
+        {
+            int relationGroupID = 1;
+            for (RelationGroup rg : dqvFocusExpression.getRelationGroup())
             {
-                rhs.add(0, focusConcept);
-                IConcept conjunction = f.createConjunction(rhs.toArray(new IConcept[rhs.size()]));
-                
-                //TODO not sure if this ID is being generated correctly
-                IConcept equivConcept = f.createConcept(generateUUID(type, dqvFocusConcept));
-                
-                axioms.add(f.createConceptInclusion(equivConcept, conjunction));
-                axioms.add(f.createConceptInclusion(conjunction, equivConcept));
+                List<IConcept> roleGroupMembers = new ArrayList<IConcept>();
+                for (Relation r : rg.getRelation())
+                {
+                    //TODO figure out a way to generate a proper ID for the relationGroup...
+                    IConcept temp = createExistential(type, r);
+                    if (temp != null)
+                    {
+                        roleGroupMembers.add(temp);
+                    }
+                }
+                if (roleGroupMembers.size() > 0)
+                {
+                    IConcept roleMembers = f.createConjunction(roleGroupMembers.toArray(new IConcept[roleGroupMembers.size()]));
+                    IConcept equivConcept = f.createConcept(generateUUID(rg.getRelation().toArray(new Relation[0])));
+                    axioms.add(f.createConceptInclusion(equivConcept, roleMembers));
+                    axioms.add(f.createConceptInclusion(roleMembers, equivConcept));
+                    
+                    IConcept roleGroup = f.createExistential(f.createRole("RoleGroup" + relationGroupID++), roleMembers);
+                    rhs.add(roleGroup);
+                }
             }
         }
+        
+        if (rhs.size() > 0)
+        {
+            rhs.add(0, focusConcept);
+            IConcept conjunction = f.createConjunction(rhs.toArray(new IConcept[rhs.size()]));
+            
+            IConcept equivConcept = f.createConcept(generateUUID(type, new Expression[] {dqvFocusExpression}));
+            
+            axioms.add(f.createConceptInclusion(equivConcept, conjunction));
+            axioms.add(f.createConceptInclusion(conjunction, equivConcept));
+            return conjunction;
+        }
+        else
+        {
+            return focusConcept;
+        }
+        
     }
     
     private IConcept processMeasurement(String type, Measurement m)
@@ -192,44 +248,38 @@ public class LegoClassifier
             unitsConcept = f.createConcept(getIdForConcept(m.getUnits().getConcept()));
         }
         
+        IConcept data;
+        String dataId;
+        
         if (m.getPoint() != null)
         {
             //TODO no idea if this measurement processing is right
             Point p = m.getPoint();
             if (p.getNumericValue() != null)
             {
-                boolean inclusive;
-                if (p.isInclusive() == null)
-                {
-                    inclusive = true;
-                }
-                else
-                {
-                    inclusive = p.isInclusive().booleanValue();
-                }
+                //TODO 1 point will always be inclusive, however if point is part of an interval, then maybe not, need to break point processing out
+//                boolean inclusive;
+//                if (p.isInclusive() == null)
+//                {
+//                    inclusive = true;
+//                }
+//                else
+//                {
+//                    inclusive = p.isInclusive().booleanValue();
+//                }
                 
                 ILiteral literal = f.createDoubleLiteral(p.getNumericValue());
                 
                 INamedFeature<String> feature = f.createFeature("equals:" + p.getNumericValue());
-                IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
-                
-                if (unitsConcept != null)
-                {
-                    IConcept conjunction = f.createConjunction(unitsConcept, data);
-                    IConcept equivConcept = f.createConcept(type + ":" + getIdForConcept(m.getUnits().getConcept()) + ":equals:" + p.getNumericValue());
-                    axioms.add(f.createConceptInclusion(equivConcept, conjunction));
-                    axioms.add(f.createConceptInclusion(conjunction, equivConcept));
-                    return conjunction;
-                }
-                else
-                {
-                    return data;
-                }
+                data = f.createDatatype(feature, Operator.EQUALS, literal);
+                dataId = ":equals:" + p.getNumericValue();
             }
-            else if (p.getStringValue() != null)
+            else if (p.getStringConstant() != null)
             {
-                //TODO string constant
-                throw new RuntimeException("string value not yet handled in measurement");
+                ILiteral literal = f.createStringLiteral(p.getStringConstant().name());
+                INamedFeature<String> feature = f.createFeature("MeasurementConstant:" + p.getStringConstant().name());
+                data = f.createDatatype(feature, Operator.EQUALS, literal);
+                dataId = ":equals:" + p.getStringConstant().name();
             }
             else
             {
@@ -245,85 +295,163 @@ public class LegoClassifier
         {
             throw new RuntimeException("invalid measurement");
         }
+        
+        if (unitsConcept != null)
+        {
+            IConcept conjunction = f.createConjunction(unitsConcept, data);
+            IConcept equivConcept = f.createConcept(type + ":" + getIdForConcept(m.getUnits().getConcept()) + dataId);
+            axioms.add(f.createConceptInclusion(equivConcept, conjunction));
+            axioms.add(f.createConceptInclusion(conjunction, equivConcept));
+            return conjunction;
+        }
+        else
+        {
+            return data;
+        }
     }
     
 
-    private IConcept createExistential(Rel r)
+    private IConcept createExistential(String type, Relation r)
     {
-        //TODO - type is (maybe) not supposed to support nested concepts... not sure - still waiting confirmation.
         INamedRole<String> typeConcept = f.createRole(getValuesInConcept(r.getType().getConcept()));
-        if (r.getDestination().getConcept() != null)
+        if (r.getDestination().getExpression() != null)
         {
-            IConcept destConcept = f.createConcept(getIdForConcept(r.getDestination().getConcept()));
-            
-            ArrayList<IConcept> nestedExistentials = new ArrayList<IConcept>();
-            if (r.getDestination().getConcept().getRel() != null)
-            {
-                for (Rel nestedRel : r.getDestination().getConcept().getRel())
-                {
-                    nestedExistentials.add(createExistential(nestedRel));
-                }
-            }
-            
-            if (nestedExistentials.size() > 0)
-            {
-                nestedExistentials.add(0, destConcept);
-                return f.createExistential(typeConcept, f.createConjunction(nestedExistentials.toArray(new IConcept[0])));
-            }
-            else
-            {
-                return f.createExistential(typeConcept, destConcept);
-            }
+            IConcept destExpression = process(type + "Rel", r.getDestination().getExpression()); 
+            return f.createExistential(typeConcept, destExpression);
         }
         else if (r.getDestination().getMeasurement() != null)
         {
             IConcept measurementConcept = processMeasurement("Destination", r.getDestination().getMeasurement());
             return f.createExistential(typeConcept, measurementConcept);
         }
+        else if (r.getDestination().getText() != null && r.getDestination().getText().length() > 0)
+        {
+            ILiteral literal = f.createStringLiteral(r.getDestination().getText());
+            INamedFeature<String> feature = f.createFeature("DestinationText:" + r.getDestination().getText());
+            IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
+            return f.createExistential(typeConcept, data);
+        }
+        else if (r.getDestination().isBoolean() != null)
+        {
+            ILiteral literal = f.createBooleanLiteral(r.getDestination().isBoolean());
+            INamedFeature<String> feature = f.createFeature("DestinationBoolean:" + r.getDestination().isBoolean());
+            IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
+            return f.createExistential(typeConcept, data);
+        }
         else
         {
             throw new RuntimeException("invalid rel");
         }
     }
-
+    
     /**
-     * Generate a unique ID based off of the concept (and all subconcepts)
+     * Generate a unique ID based off of the relations (and all subconcepts)
      */
-    private String generateUUID(String type, Concept c)
+    private String generateUUID(Relation[] relations)
     {
+        //TODO not sure if this ID is being generated correctly - what should the ID represent?
         StringBuilder sb = new StringBuilder();
-        sb.append(type);
-        buildIDComponents(sb, c);
+        for (Relation r : relations)
+        {
+            buildIDComponents(sb, r);
+        }
         UUID uuid = UUID.nameUUIDFromBytes(sb.toString().getBytes());
         logger.debug("Created " + uuid.toString() + " from " + sb.toString());
         conceptIds.add(uuid.toString());
         return uuid.toString();
     }
 
-    private void buildIDComponents(StringBuilder sb, Concept expression)
+    
+    /**
+     * Generate a unique ID based off of the expressions (and all subconcepts)
+     */
+    private String generateUUID(String type, Expression[] expressions)
+    {
+        //TODO not sure if this ID is being generated correctly - what should the ID represent?
+        StringBuilder sb = new StringBuilder();
+        sb.append(type);
+        for (Expression e : expressions)
+        {
+            buildIDComponents(sb, e);
+        }
+        UUID uuid = UUID.nameUUIDFromBytes(sb.toString().getBytes());
+        logger.debug("Created " + uuid.toString() + " from " + sb.toString());
+        conceptIds.add(uuid.toString());
+        return uuid.toString();
+    }
+    
+    private void buildIDComponents(StringBuilder sb, Expression expression)
     {
         sb.append(":");
-        sb.append(getValuesInConcept(expression));
-        if (expression.getRel() != null)
+        if (expression.getConcept() != null)
         {
-            for (Rel r : expression.getRel())
+            sb.append(getValuesInConcept(expression.getConcept()));
+        }
+        else if(expression.getExpression().size() > 0)
+        {
+            for (Expression e : expression.getExpression())
             {
-                buildIDComponents(sb, r.getType().getConcept());
-                if (r.getDestination().getConcept() != null)
+                buildIDComponents(sb, e);
+            }
+        }
+        else
+        {
+            throw new RuntimeException("unexpected case");
+        }
+        
+        if (expression.getRelation() != null)
+        {
+            for (Relation r : expression.getRelation())
+            {
+                buildIDComponents(sb, r);
+            }
+        }
+        if (expression.getRelationGroup() != null)
+        {
+            int i = 1;
+            for (RelationGroup rg : expression.getRelationGroup())
+            {
+                //TODO better identifiers for RoleGroup
+                sb.append(":RG" + i++);
+                for (Relation r : rg.getRelation())
                 {
-                    buildIDComponents(sb, r.getDestination().getConcept());
-                }
-                else
-                {
-                    if (r.getDestination().getMeasurement().getUnits() != null)
-                    {
-                        buildIDComponents(sb, r.getDestination().getMeasurement().getUnits().getConcept());
-                    }
-                    sb.append(getValuesInInterval(r.getDestination().getMeasurement().getInterval()));
-                    sb.append(getValueInPoint(r.getDestination().getMeasurement().getPoint()));
+                    sb.append(":i");
+                    buildIDComponents(sb, r);
                 }
             }
         }
+    }
+    
+    private void buildIDComponents(StringBuilder sb, Relation r)
+    {
+        buildIDComponents(sb, r.getType().getConcept());
+        if (r.getDestination().getExpression() != null)
+        {
+            buildIDComponents(sb, r.getDestination().getExpression());
+        }
+        else if (r.getDestination().getMeasurement() != null)
+        {
+            if (r.getDestination().getMeasurement().getUnits() != null)
+            {
+                buildIDComponents(sb, r.getDestination().getMeasurement().getUnits().getConcept());
+            }
+            sb.append(getValuesInInterval(r.getDestination().getMeasurement().getInterval()));
+            sb.append(getValueInPoint(r.getDestination().getMeasurement().getPoint()));
+        }
+        else if (r.getDestination().getText() != null && r.getDestination().getText().length() > 0)
+        {
+            sb.append(r.getDestination().getText());
+        }
+        else if (r.getDestination().isBoolean() != null)
+        {
+            sb.append(r.getDestination().isBoolean());
+        }
+    }
+    
+    private void buildIDComponents(StringBuilder sb, Concept c)
+    {
+        sb.append(":");
+        sb.append(getIdForConcept(c));
     }
     
     private String getIdForConcept(Concept c)
@@ -384,7 +512,7 @@ public class LegoClassifier
         }
         else
         {
-            return ":" + p.getStringValue().name();
+            return ":" + p.getStringConstant().name();
         }
     }
 
