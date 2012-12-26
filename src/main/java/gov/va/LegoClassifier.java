@@ -3,6 +3,7 @@ package gov.va;
 import gov.va.legoSchema.Assertion;
 import gov.va.legoSchema.Bound;
 import gov.va.legoSchema.Concept;
+import gov.va.legoSchema.Destination;
 import gov.va.legoSchema.Expression;
 import gov.va.legoSchema.Interval;
 import gov.va.legoSchema.Lego;
@@ -11,7 +12,7 @@ import gov.va.legoSchema.Measurement;
 import gov.va.legoSchema.Point;
 import gov.va.legoSchema.Relation;
 import gov.va.legoSchema.RelationGroup;
-import gov.va.legoSchema.Timing;
+import gov.va.legoSchema.Type;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -26,12 +27,18 @@ import au.csiro.ontology.Node;
 import au.csiro.ontology.axioms.IAxiom;
 import au.csiro.ontology.classification.IReasoner;
 import au.csiro.ontology.model.IConcept;
+import au.csiro.ontology.model.IConjunction;
 import au.csiro.ontology.model.ILiteral;
 import au.csiro.ontology.model.INamedFeature;
 import au.csiro.ontology.model.INamedRole;
 import au.csiro.ontology.model.Operator;
 import au.csiro.snorocket.core.SnorocketReasoner;
 
+/**
+ * 
+ * @author Dan Armbrust
+ * @author Alejandro Metke
+ */
 public class LegoClassifier
 {
     Logger logger = LoggerFactory.getLogger(LegoClassifier.class);
@@ -40,6 +47,7 @@ public class LegoClassifier
     Factory<String> f = new Factory<>();
     Set<String> conceptIds = new HashSet<>();
     Set<IAxiom> axioms = new HashSet<>();
+    INamedRole<String> roleGroup = f.createRole("RoleGroup");
 
     public LegoClassifier()
     {
@@ -65,9 +73,16 @@ public class LegoClassifier
                 }
             }
         }
-        
+
+        System.out.println("******************************************");
+        for (IAxiom axiom : axioms)
+        {
+            System.out.println(axiom);
+        }
+        System.out.println("******************************************");
+
         reasoner.classify(axioms);
-        
+
         // The taxonomy contains the inferred hierarchy
         IOntology<String> t = reasoner.getClassifiedOntology();
 
@@ -82,7 +97,7 @@ public class LegoClassifier
             else
             {
                 System.out.println("Equivalent Concepts " + newNode.getEquivalentConcepts());
-    
+
                 // We can now look for the parent and child nodes
                 Set<Node<String>> parentNodes = newNode.getParents();
                 System.out.println("Parents:");
@@ -90,7 +105,7 @@ public class LegoClassifier
                 {
                     System.out.println("  " + parentNode.getEquivalentConcepts());
                 }
-    
+
                 Set<Node<String>> childNodes = newNode.getChildren();
                 System.out.println("Children:");
                 for (Node<String> childNode : childNodes)
@@ -98,7 +113,7 @@ public class LegoClassifier
                     System.out.println("  " + childNode.getEquivalentConcepts());
                 }
             }
-            
+
             System.out.println("=====================================");
         }
     }
@@ -108,201 +123,245 @@ public class LegoClassifier
         for (Assertion a : l.getAssertion())
         {
             // TODO assertion components
-            // TODO do I have to do the equivalence thing whenever I make a conjunction? 
-            
-            process("D", a.getDiscernible().getExpression());
-            process("Q", a.getQualifier().getExpression());
-            
-            // Value
+            IConcept discernibleExpression = process(a.getDiscernible().getExpression());
+
+            if (null != discernibleExpression && discernibleExpression instanceof IConjunction)
+            {
+                String id = generateUUID(a.getDiscernible().getExpression());
+                IConcept discernibleConcept = f.createConcept(id);
+                axioms.add(f.createConceptInclusion(discernibleConcept, discernibleExpression));
+                axioms.add(f.createConceptInclusion(discernibleExpression, discernibleConcept));
+            }
+
+            IConcept qualifierExpression = process(a.getQualifier().getExpression());
+
+            if (null != qualifierExpression && qualifierExpression instanceof IConjunction)
+            {
+                String id = generateUUID(a.getQualifier().getExpression());
+                IConcept qualifierConcept = f.createConcept(id);
+                axioms.add(f.createConceptInclusion(qualifierConcept, qualifierExpression));
+                axioms.add(f.createConceptInclusion(qualifierExpression, qualifierConcept));
+            }
+
             if (a.getValue().getExpression() != null)
             {
-                process("V", a.getValue().getExpression());
+                IConcept valueExpression = process(a.getValue().getExpression());
+    
+                if (null != valueExpression && valueExpression instanceof IConjunction)
+                {
+                    String id = generateUUID(a.getValue().getExpression());
+                    IConcept valueConcept = f.createConcept(id);
+                    axioms.add(f.createConceptInclusion(valueConcept, valueExpression));
+                    axioms.add(f.createConceptInclusion(valueExpression, valueConcept));
+                }
             }
             else if (a.getValue().getMeasurement() != null)
             {
-                processMeasurement("Value", a.getValue().getMeasurement());
+                //TODO handle measurement value
+                logger.error("Unhandled data!");
             }
             else if (a.getValue().getText() != null && a.getValue().getText().length() > 0)
             {
-                ILiteral literal = f.createStringLiteral(a.getValue().getText());
-                INamedFeature<String> feature = f.createFeature("ValueText:" + a.getValue().getText());
-                f.createDatatype(feature, Operator.EQUALS, literal);
-                //TODO do I need to do anything else with this text?
+                //TODO  handle text value
+                logger.error("Unhandled data!");
             }
             else if (a.getValue().isBoolean() != null)
             {
-                ILiteral literal = f.createBooleanLiteral(a.getValue().isBoolean());
-                INamedFeature<String> feature = f.createFeature("ValueBoolean:" + a.getValue().isBoolean());
-                f.createDatatype(feature, Operator.EQUALS, literal);
-                //TODO do I need to do anything else with this boolean?
+                //TODO handle boolean value
+                logger.error("Unhandled data!");
+            }
+            else
+            {
+                throw new RuntimeException("Missing value?");
             }
             
-            //Timing
             if (a.getTiming() != null)
             {
-                Timing t = a.getTiming();
-                Measurement m = t.getMeasurement();
-                if (m != null)
-                {
-                    processMeasurement("Timing", m);
-                }
+                // TODO Timing
+                logger.error("Unhandled data!");
             }
         }
     }
 
-    private IConcept process(String type, Expression dqvFocusExpression)
+    /**
+     * This method returns the right hand side of a concept inclusion axiom derived from an {@link Expression}.
+     * 
+     * @param expression
+     */
+    private IConcept process(Expression expression)
     {
+        // The list of conjuncts that will be returned
         List<IConcept> rhs = new ArrayList<IConcept>();
-        
-        IConcept focusConcept;
-        if (dqvFocusExpression == null)
+
+        // 1. Process the focus concept
+        if (expression == null)
         {
             return null;
         }
-        else if (dqvFocusExpression.getConcept() != null)
+        else if (expression.getConcept() != null)
         {
-            focusConcept = f.createConcept(getIdForConcept(dqvFocusExpression.getConcept()));
+            rhs.add(f.createConcept(getIdForConcept(expression.getConcept())));
         }
-        else if (dqvFocusExpression.getExpression().size() > 0)
+        else if (expression.getExpression().size() > 0)
         {
-            List<IConcept> conjunctionConcepts = new ArrayList<IConcept>(dqvFocusExpression.getExpression().size());
-            for (Expression e : dqvFocusExpression.getExpression())
+            for (Expression e : expression.getExpression())
             {
-                conjunctionConcepts.add(process(type, e));
+                rhs.add(process(e));
             }
-            focusConcept = f.createConjunction(conjunctionConcepts.toArray(new IConcept[conjunctionConcepts.size()]));
-            
-            IConcept conjunctionEquivConcept = f.createConcept(generateUUID(type, dqvFocusExpression.getExpression().toArray(new Expression[0])));
-            
-            axioms.add(f.createConceptInclusion(conjunctionEquivConcept, focusConcept));
-            axioms.add(f.createConceptInclusion(focusConcept, conjunctionEquivConcept));
         }
         else
         {
-            throw new RuntimeException("unexpected case");
+            throw new RuntimeException("unexpected case - missing expression?");
         }
-        
-        if (dqvFocusExpression.getRelation() != null)
+
+        // 2. Process the relations
+
+        // Build role groups
+        List<Set<Relation>> relGroups = new ArrayList<>();
+        relGroups.add(new HashSet<Relation>()); // group 0
+
+        if (expression.getRelationGroup() != null)
         {
-            for (Relation r : dqvFocusExpression.getRelation())
+            for (RelationGroup rg : expression.getRelationGroup())
             {
-                IConcept temp = createExistential(type, r);
-                if (temp != null)
-                {
-                    rhs.add(temp);
-                }
+                relGroups.add(new HashSet<Relation>(rg.getRelation()));
             }
         }
-        if (dqvFocusExpression.getRelationGroup() != null)
+
+        //TODO - I don't think this works due to the lack of a .equals method.   Open question to Alejandro
+        // Find ungrouped relations and add to group 0
+        if (expression.getRelation() != null)
         {
-            int relationGroupID = 1;
-            for (RelationGroup rg : dqvFocusExpression.getRelationGroup())
+            boolean inGroup = false;
+            for (Relation r : expression.getRelation())
             {
-                List<IConcept> roleGroupMembers = new ArrayList<IConcept>();
-                for (Relation r : rg.getRelation())
+                for (Set<Relation> rg : relGroups)
                 {
-                    //TODO figure out a way to generate a proper ID for the relationGroup...
-                    IConcept temp = createExistential(type, r);
-                    if (temp != null)
+                    if (rg.contains(r))
                     {
-                        roleGroupMembers.add(temp);
+                        inGroup = true;
+                        break;
                     }
                 }
-                if (roleGroupMembers.size() > 0)
+                if (!inGroup)
                 {
-                    IConcept roleMembers = f.createConjunction(roleGroupMembers.toArray(new IConcept[roleGroupMembers.size()]));
-                    IConcept equivConcept = f.createConcept(generateUUID(rg.getRelation().toArray(new Relation[0])));
-                    axioms.add(f.createConceptInclusion(equivConcept, roleMembers));
-                    axioms.add(f.createConceptInclusion(roleMembers, equivConcept));
-                    
-                    IConcept roleGroup = f.createExistential(f.createRole("RoleGroup" + relationGroupID++), roleMembers);
-                    rhs.add(roleGroup);
+                    relGroups.get(0).add(r);
                 }
             }
         }
-        
-        if (rhs.size() > 0)
+
+        // Process relationships
+        for (int i = 0; i < relGroups.size(); i++)
         {
-            rhs.add(0, focusConcept);
-            IConcept conjunction = f.createConjunction(rhs.toArray(new IConcept[rhs.size()]));
-            
-            IConcept equivConcept = f.createConcept(generateUUID(type, new Expression[] {dqvFocusExpression}));
-            
-            axioms.add(f.createConceptInclusion(equivConcept, conjunction));
-            axioms.add(f.createConceptInclusion(conjunction, equivConcept));
-            return conjunction;
-        }
-        else
-        {
-            return focusConcept;
-        }
-        
-    }
-    
-    private IConcept processMeasurement(String type, Measurement m)
-    {
-        IConcept unitsConcept = null;
-        if (m.getUnits() != null && m.getUnits().getConcept() != null)
-        {
-            //units are optional
-            unitsConcept = f.createConcept(getIdForConcept(m.getUnits().getConcept()));
-        }
-        
-        IConcept data;
-        String dataId;
-        
-        if (m.getPoint() != null)
-        {
-            //TODO no idea if this measurement processing is right
-            Point p = m.getPoint();
-            if (p.getNumericValue() != null)
+            Set<Relation> relGroup = relGroups.get(i);
+            if (i == 0)
             {
-                //TODO 1 point will always be inclusive, however if point is part of an interval, then maybe not, need to break point processing out
-//                boolean inclusive;
-//                if (p.isInclusive() == null)
-//                {
-//                    inclusive = true;
-//                }
-//                else
-//                {
-//                    inclusive = p.isInclusive().booleanValue();
-//                }
-                
-                ILiteral literal = f.createDoubleLiteral(p.getNumericValue());
-                
-                INamedFeature<String> feature = f.createFeature("equals:" + p.getNumericValue());
-                data = f.createDatatype(feature, Operator.EQUALS, literal);
-                dataId = ":equals:" + p.getNumericValue();
-            }
-            else if (p.getStringConstant() != null)
-            {
-                ILiteral literal = f.createStringLiteral(p.getStringConstant().name());
-                INamedFeature<String> feature = f.createFeature("MeasurementConstant:" + p.getStringConstant().name());
-                data = f.createDatatype(feature, Operator.EQUALS, literal);
-                dataId = ":equals:" + p.getStringConstant().name();
+                // Special case - not grouped
+                for (Relation r : relGroup)
+                {
+                    IConcept temp = processRelationship(r);
+                    if (temp != null)
+                    {
+                        rhs.add(temp);
+                    }
+                }
             }
             else
             {
-                throw new RuntimeException("invalid measurement");
+                // All of these have to be grouped
+                List<IConcept> conjs = new ArrayList<>();
+                for (Relation r : relGroup)
+                {
+                    IConcept temp = processRelationship(r);
+                    if (temp != null)
+                    {
+                        conjs.add(temp);
+                    }
+                }
+                IConcept rg = f.createExistential(roleGroup, f.createConjunction(conjs.toArray(new IConcept[conjs.size()])));
+                rhs.add(rg);
             }
         }
-        else if (m.getInterval() != null)
+
+        assert (!rhs.isEmpty());
+
+        if (rhs.size() == 1)
         {
-            //TODO interval
-            throw new RuntimeException("measurement interval not yet handeled");
+            return rhs.get(0);
+        }
+        else
+        {
+            return f.createConjunction(rhs.toArray(new IConcept[rhs.size()]));
+        }
+    }
+
+    private IConcept processMeasurement(INamedFeature<String> feature, Measurement measurement)
+    {
+        IConcept unitsConcept = null;
+        if (measurement.getUnits() != null && measurement.getUnits().getConcept() != null)
+        {
+            // units are optional
+            unitsConcept = f.createConcept(getIdForConcept(measurement.getUnits().getConcept()));
+        }
+
+        IConcept data;
+        if (measurement.getPoint() != null)
+        {
+            Point p = measurement.getPoint();
+            data = processPoint(feature, p, null);
+        }
+        else if (measurement.getInterval() != null)
+        {
+            Interval i = measurement.getInterval();
+            
+            IConcept lower = null;
+            IConcept upper = null;
+            if (i.getLowerPoint() != null)
+            {
+                lower = processPoint(feature, i.getLowerPoint(), true);
+            }
+            else if (i.getLowerBound() != null)
+            {
+                Bound b = i.getLowerBound();
+                IConcept lowerLower = processPoint(feature, b.getLowerPoint(), true);
+                IConcept lowerUpper = processPoint(feature, b.getUpperPoint(), false);
+                lower = f.createConjunction(lowerLower, lowerUpper);
+            }
+            
+            if (i.getUpperPoint() != null)
+            {
+                upper = processPoint(feature, i.getUpperPoint(), false);
+            }
+            else if (i.getUpperBound() != null)
+            {
+                Bound b = i.getUpperBound();
+                IConcept upperLower = processPoint(feature, b.getLowerPoint(), true);
+                IConcept upperUpper = processPoint(feature, b.getUpperPoint(), false);
+                upper = f.createConjunction(upperLower, upperUpper);
+            }
+            if (lower != null && upper != null)
+            {
+                data = f.createConjunction(lower, upper);
+            }
+            else if (lower != null)
+            {
+                data = lower;
+            }
+            else
+            {
+                data = upper;
+            }
         }
         else
         {
             throw new RuntimeException("invalid measurement");
         }
-        
+
         if (unitsConcept != null)
         {
+            // The units and datatype must be grouped
             IConcept conjunction = f.createConjunction(unitsConcept, data);
-            IConcept equivConcept = f.createConcept(type + ":" + getIdForConcept(m.getUnits().getConcept()) + dataId);
-            axioms.add(f.createConceptInclusion(equivConcept, conjunction));
-            axioms.add(f.createConceptInclusion(conjunction, equivConcept));
-            return conjunction;
+            return f.createExistential(roleGroup, conjunction);
         }
         else
         {
@@ -310,76 +369,113 @@ public class LegoClassifier
         }
     }
     
-
-    private IConcept createExistential(String type, Relation r)
+    /**
+     * @param lowerPoint - null to say neither lower nor upper (just a point), true for lower, false for upper
+     * @return
+     */
+    private IConcept processPoint(INamedFeature<String> feature, Point point, Boolean lowerPoint)
     {
-        INamedRole<String> typeConcept = f.createRole(getValuesInConcept(r.getType().getConcept()));
-        if (r.getDestination().getExpression() != null)
+        Operator op = null;
+        if (lowerPoint == null)
         {
-            IConcept destExpression = process(type + "Rel", r.getDestination().getExpression()); 
-            return f.createExistential(typeConcept, destExpression);
+            op = Operator.EQUALS;
         }
-        else if (r.getDestination().getMeasurement() != null)
+        else
         {
-            IConcept measurementConcept = processMeasurement("Destination", r.getDestination().getMeasurement());
-            return f.createExistential(typeConcept, measurementConcept);
+            if (lowerPoint.booleanValue())
+            {
+                if (point.isInclusive() == null || point.isInclusive().booleanValue())
+                {
+                    op = Operator.GREATER_THAN_EQUALS;
+                }
+                else
+                {
+                    op = Operator.GREATER_THAN;
+                }
+            }
+            else
+            {
+                if (point.isInclusive() == null || point.isInclusive().booleanValue())
+                {
+                    op = Operator.LESS_THAN_EQUALS;
+                }
+                else
+                {
+                    op = Operator.LESS_THAN;
+                }
+            }
         }
-        else if (r.getDestination().getText() != null && r.getDestination().getText().length() > 0)
+        
+        if (point.getNumericValue() != null)
         {
-            ILiteral literal = f.createStringLiteral(r.getDestination().getText());
-            INamedFeature<String> feature = f.createFeature("DestinationText:" + r.getDestination().getText());
+            ILiteral literal = f.createDoubleLiteral(point.getNumericValue());
+            return f.createDatatype(feature, op, literal);
+        }
+        else if (point.getStringConstant() != null)
+        {
+            ILiteral literal = f.createStringLiteral(point.getStringConstant().name());
+            return f.createDatatype(feature, op, literal);
+        }
+        else
+        {
+            throw new RuntimeException("invalid point");
+        }
+    }
+
+    private IConcept processRelationship(Relation r)
+    {
+        // We need to determine if this relation refers to a role or a feature.
+        // This is done by looking at the destination.
+        Destination dest = r.getDestination();
+        Type tp = r.getType();
+
+        if (dest.getExpression() != null)
+        {
+            // If the destination is an expression the type is role
+            INamedRole<String> role = f.createRole(getValuesInConcept(tp.getConcept()));
+            IConcept destExpression = process(dest.getExpression());
+            return f.createExistential(role, destExpression);
+        }
+        else if (dest.getMeasurement() != null)
+        {
+            INamedFeature<String> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
+            IConcept measurementConcept = processMeasurement(feature, dest.getMeasurement());
+            return measurementConcept;
+        }
+        else if (dest.getText() != null && r.getDestination().getText().length() > 0)
+        {
+            INamedFeature<String> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
+            ILiteral literal = f.createStringLiteral(dest.getText());
             IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
-            return f.createExistential(typeConcept, data);
+            return data;
         }
-        else if (r.getDestination().isBoolean() != null)
+        else if (dest.isBoolean() != null)
         {
-            ILiteral literal = f.createBooleanLiteral(r.getDestination().isBoolean());
-            INamedFeature<String> feature = f.createFeature("DestinationBoolean:" + r.getDestination().isBoolean());
+            INamedFeature<String> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
+            ILiteral literal = f.createBooleanLiteral(dest.isBoolean());
             IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
-            return f.createExistential(typeConcept, data);
+            return data;
         }
         else
         {
             throw new RuntimeException("invalid rel");
         }
     }
-    
+
     /**
-     * Generate a unique ID based off of the relations (and all subconcepts)
+     * Generate a unique ID based off of the expressions (and all subconcepts)
      */
-    private String generateUUID(Relation[] relations)
-    {
-        //TODO not sure if this ID is being generated correctly - what should the ID represent?
+    //TODO all of these generate functions need to be reworked so that they generate the ID doesn't change if the order of the children changes
+    private String generateUUID(Expression expression)
+    {        
         StringBuilder sb = new StringBuilder();
-        for (Relation r : relations)
-        {
-            buildIDComponents(sb, r);
-        }
+        buildIDComponents(sb, expression);
         UUID uuid = UUID.nameUUIDFromBytes(sb.toString().getBytes());
         logger.debug("Created " + uuid.toString() + " from " + sb.toString());
         conceptIds.add(uuid.toString());
         return uuid.toString();
     }
 
-    
-    /**
-     * Generate a unique ID based off of the expressions (and all subconcepts)
-     */
-    private String generateUUID(String type, Expression[] expressions)
-    {
-        //TODO not sure if this ID is being generated correctly - what should the ID represent?
-        StringBuilder sb = new StringBuilder();
-        sb.append(type);
-        for (Expression e : expressions)
-        {
-            buildIDComponents(sb, e);
-        }
-        UUID uuid = UUID.nameUUIDFromBytes(sb.toString().getBytes());
-        logger.debug("Created " + uuid.toString() + " from " + sb.toString());
-        conceptIds.add(uuid.toString());
-        return uuid.toString();
-    }
-    
     private void buildIDComponents(StringBuilder sb, Expression expression)
     {
         sb.append(":");
@@ -387,7 +483,7 @@ public class LegoClassifier
         {
             sb.append(getValuesInConcept(expression.getConcept()));
         }
-        else if(expression.getExpression().size() > 0)
+        else if (expression.getExpression().size() > 0)
         {
             for (Expression e : expression.getExpression())
             {
@@ -398,7 +494,7 @@ public class LegoClassifier
         {
             throw new RuntimeException("unexpected case");
         }
-        
+
         if (expression.getRelation() != null)
         {
             for (Relation r : expression.getRelation())
@@ -411,7 +507,7 @@ public class LegoClassifier
             int i = 1;
             for (RelationGroup rg : expression.getRelationGroup())
             {
-                //TODO better identifiers for RoleGroup
+                // TODO better identifiers for RoleGroup - should be based on what it contains
                 sb.append(":RG" + i++);
                 for (Relation r : rg.getRelation())
                 {
@@ -421,7 +517,7 @@ public class LegoClassifier
             }
         }
     }
-    
+
     private void buildIDComponents(StringBuilder sb, Relation r)
     {
         buildIDComponents(sb, r.getType().getConcept());
@@ -447,13 +543,13 @@ public class LegoClassifier
             sb.append(r.getDestination().isBoolean());
         }
     }
-    
+
     private void buildIDComponents(StringBuilder sb, Concept c)
     {
         sb.append(":");
         sb.append(getIdForConcept(c));
     }
-    
+
     private String getIdForConcept(Concept c)
     {
         String s = getValuesInConcept(c);
@@ -466,7 +562,7 @@ public class LegoClassifier
         String conceptId = null;
         if (c.getSctid() != null)
         {
-            conceptId = c.getSctid().toString(); 
+            conceptId = c.getSctid().toString();
         }
         else
         {
