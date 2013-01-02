@@ -219,36 +219,14 @@ public class LegoClassifier
         // Build role groups
         List<Set<Relation>> relGroups = new ArrayList<>();
         relGroups.add(new HashSet<Relation>()); // group 0
+        // Put ungrouped relations to group 0
+        relGroups.get(0).addAll(expression.getRelation());
 
-        if (expression.getRelationGroup() != null)
+        for (RelationGroup rg : expression.getRelationGroup())
         {
-            for (RelationGroup rg : expression.getRelationGroup())
-            {
-                relGroups.add(new HashSet<Relation>(rg.getRelation()));
-            }
+            relGroups.add(new HashSet<Relation>(rg.getRelation()));
         }
-
-        //TODO - I don't think this works due to the lack of a .equals method.   Open question to Alejandro
-        // Find ungrouped relations and add to group 0
-        if (expression.getRelation() != null)
-        {
-            boolean inGroup = false;
-            for (Relation r : expression.getRelation())
-            {
-                for (Set<Relation> rg : relGroups)
-                {
-                    if (rg.contains(r))
-                    {
-                        inGroup = true;
-                        break;
-                    }
-                }
-                if (!inGroup)
-                {
-                    relGroups.get(0).add(r);
-                }
-            }
-        }
+        
 
         // Process relationships
         for (int i = 0; i < relGroups.size(); i++)
