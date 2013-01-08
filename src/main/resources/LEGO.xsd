@@ -4,6 +4,7 @@
 <!-- Version 2012/12/14 -->
 <!-- 
 	Changelog:
+	1/4/13  - Added (optional) comment fields to the Lego and the Lego List.
 	12/14	- Got rid of 'expressionConjuction' - no longer necessary now that we have the 'expression' type.
 	12/13 	- Moved relationships from concept to a new type 'expression'.  'discernible', 'qualifier', 'value' and 'destination'
 				have their target types changed to 'expression'.  'type' and 'units' remain as concept - so type and units can no longer
@@ -26,6 +27,7 @@
 				<xs:element name="groupName" type="xs:string" />
 				<xs:element name="legoListUUID" type="UUID" />
 				<xs:element name="groupDescription" type="xs:string" minOccurs="0" />
+				<xs:element name="comment" type="xs:string" minOccurs="0" />
 				<xs:element ref="lego" maxOccurs="unbounded" />
 			</xs:sequence>
 		</xs:complexType>
@@ -38,6 +40,7 @@
 				<xs:element ref="stamp" />
 				<xs:element ref="pncs" />
 				<xs:element ref="assertion" minOccurs="1" maxOccurs="unbounded" />
+				<xs:element name="comment" type="xs:string" minOccurs="0" />
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>

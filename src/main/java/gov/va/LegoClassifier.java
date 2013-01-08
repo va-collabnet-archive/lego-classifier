@@ -157,15 +157,15 @@ public class LegoClassifier
             }
             else if (a.getValue().getMeasurement() != null)
             {
-                logger.info("Value Measurements that are not part of an expression are not classified");
+                logger.debug("Value Measurements that are not part of an expression are not classified");
             }
             else if (a.getValue().getText() != null && a.getValue().getText().length() > 0)
             {
-                logger.info("Value text that is not part of an expression is not classified");
+                logger.debug("Value text that is not part of an expression is not classified");
             }
             else if (a.getValue().isBoolean() != null)
             {
-                logger.info("Boolean value that is not part of an expression is not classified");
+                logger.debug("Boolean value that is not part of an expression is not classified");
             }
             else
             {
@@ -174,7 +174,7 @@ public class LegoClassifier
             
             if (a.getTiming() != null)
             {
-                logger.info("Timing information is not classified");
+                logger.debug("Timing information is not classified");
             }
         }
     }

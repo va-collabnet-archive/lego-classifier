@@ -21,7 +21,7 @@
         </layout> 
     </appender>
     <logger name="gov.va">
-        <level value="debug"/> 
+        <level value="info"/> 
     </logger>
     <root> 
         <priority value ="warn" /> 
