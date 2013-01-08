@@ -157,18 +157,15 @@ public class LegoClassifier
             }
             else if (a.getValue().getMeasurement() != null)
             {
-                //TODO handle measurement value
-                logger.error("Unhandled data!");
+                logger.info("Value Measurements that are not part of an expression are not classified");
             }
             else if (a.getValue().getText() != null && a.getValue().getText().length() > 0)
             {
-                //TODO  handle text value
-                logger.error("Unhandled data!");
+                logger.info("Value text that is not part of an expression is not classified");
             }
             else if (a.getValue().isBoolean() != null)
             {
-                //TODO handle boolean value
-                logger.error("Unhandled data!");
+                logger.info("Boolean value that is not part of an expression is not classified");
             }
             else
             {
@@ -177,8 +174,7 @@ public class LegoClassifier
             
             if (a.getTiming() != null)
             {
-                // TODO Timing
-                logger.error("Unhandled data!");
+                logger.info("Timing information is not classified");
             }
         }
     }
@@ -292,6 +288,12 @@ public class LegoClassifier
         {
             Interval i = measurement.getInterval();
             
+            //In the case of bounds, where we have an uncertainty range on each end of the interval - like this:
+            //{[5] to (8)} <= X <= {(20) to [30]}
+            //We turn this into [5] <= X <= [30] - as the classifier doesn't have a way to distinguish between definitely in the bound, and possibly in the bound.
+            //This will only allow querying if a point is in the interval but it will be impossible to know if it is either possibly 
+            //in the interval or definitively in the interval
+            
             IConcept lower = null;
             IConcept upper = null;
             if (i.getLowerPoint() != null)
@@ -301,9 +303,8 @@ public class LegoClassifier
             else if (i.getLowerBound() != null)
             {
                 Bound b = i.getLowerBound();
-                IConcept lowerLower = processPoint(feature, b.getLowerPoint(), true);
-                IConcept lowerUpper = processPoint(feature, b.getUpperPoint(), false);
-                lower = f.createConjunction(lowerLower, lowerUpper);
+                lower = processPoint(feature, b.getLowerPoint(), true);
+                //ignore lowerUpper
             }
             
             if (i.getUpperPoint() != null)
@@ -313,9 +314,8 @@ public class LegoClassifier
             else if (i.getUpperBound() != null)
             {
                 Bound b = i.getUpperBound();
-                IConcept upperLower = processPoint(feature, b.getLowerPoint(), true);
-                IConcept upperUpper = processPoint(feature, b.getUpperPoint(), false);
-                upper = f.createConjunction(upperLower, upperUpper);
+                //Ignore upperLower
+                upper = processPoint(feature, b.getUpperPoint(), false);
             }
             if (lower != null && upper != null)
             {
@@ -443,7 +443,7 @@ public class LegoClassifier
     /**
      * Generate a unique ID based off of the expressions (and all subconcepts)
      */
-    //TODO all of these generate functions need to be reworked so that they generate the ID doesn't change if the order of the children changes
+    //TODO all of these generate functions need to be reworked so that they generate an ID that doesn't change if the order of the children changes
     private String generateUUID(Expression expression)
     {        
         StringBuilder sb = new StringBuilder();
