@@ -282,7 +282,54 @@ public class LegoClassifier
         if (measurement.getPoint() != null)
         {
             Point p = measurement.getPoint();
-            data = processPoint(feature, p, null);
+            data = processPoint(feature, p, Operator.EQUALS);
+        }
+        else if (measurement.getBound() != null)
+        {
+            Bound b = measurement.getBound();
+            
+            IConcept lower = null;
+            IConcept upper = null;
+            if (b.getLowerPoint() != null)
+            {
+                Operator lowerOperator = null;
+                if (b.isLowerPointInclusive() == null || b.isLowerPointInclusive())
+                {
+                    lowerOperator = Operator.GREATER_THAN_EQUALS;
+                }
+                else
+                {
+                    lowerOperator = Operator.GREATER_THAN;
+                }
+                lower = processPoint(feature, b.getLowerPoint(), lowerOperator);
+            }
+            
+            if (b.getUpperPoint() != null)
+            {
+                Operator upperOperator = null;
+                if (b.isUpperPointInclusive() == null || b.isUpperPointInclusive())
+                {
+                    upperOperator = Operator.LESS_THAN_EQUALS;
+                }
+                else
+                {
+                    upperOperator = Operator.LESS_THAN;
+                }
+                upper = processPoint(feature, b.getUpperPoint(), upperOperator);
+            }
+            
+            if (lower != null && upper != null)
+            {
+                data = f.createConjunction(lower, upper);
+            }
+            else if (lower != null)
+            {
+                data = lower;
+            }
+            else
+            {
+                data = upper;
+            }
         }
         else if (measurement.getInterval() != null)
         {
@@ -296,27 +343,34 @@ public class LegoClassifier
             
             IConcept lower = null;
             IConcept upper = null;
-            if (i.getLowerPoint() != null)
+            if (i.getLowerBound() != null && i.getLowerBound().getLowerPoint() != null)
             {
-                lower = processPoint(feature, i.getLowerPoint(), true);
-            }
-            else if (i.getLowerBound() != null)
-            {
-                Bound b = i.getLowerBound();
-                lower = processPoint(feature, b.getLowerPoint(), true);
-                //ignore lowerUpper
+                Operator lowerOperator = null;
+                if (i.getLowerBound().isLowerPointInclusive() == null || i.getLowerBound().isLowerPointInclusive())
+                {
+                    lowerOperator = Operator.GREATER_THAN_EQUALS;
+                }
+                else
+                {
+                    lowerOperator = Operator.GREATER_THAN;
+                }
+                lower = processPoint(feature, i.getLowerBound().getLowerPoint(), lowerOperator);
             }
             
-            if (i.getUpperPoint() != null)
+            if (i.getUpperBound() != null && i.getUpperBound().getUpperPoint() != null)
             {
-                upper = processPoint(feature, i.getUpperPoint(), false);
+                Operator upperOperator = null;
+                if (i.getUpperBound().isUpperPointInclusive() == null || i.getUpperBound().isUpperPointInclusive())
+                {
+                    upperOperator = Operator.LESS_THAN_EQUALS;
+                }
+                else
+                {
+                    upperOperator = Operator.LESS_THAN;
+                }
+                upper = processPoint(feature, i.getUpperBound().getUpperPoint(), upperOperator);
             }
-            else if (i.getUpperBound() != null)
-            {
-                Bound b = i.getUpperBound();
-                //Ignore upperLower
-                upper = processPoint(feature, b.getUpperPoint(), false);
-            }
+            
             if (lower != null && upper != null)
             {
                 data = f.createConjunction(lower, upper);
@@ -351,48 +405,17 @@ public class LegoClassifier
      * @param lowerPoint - null to say neither lower nor upper (just a point), true for lower, false for upper
      * @return
      */
-    private IConcept processPoint(INamedFeature<String> feature, Point point, Boolean lowerPoint)
+    private IConcept processPoint(INamedFeature<String> feature, Point point, Operator operator)
     {
-        Operator op = null;
-        if (lowerPoint == null)
-        {
-            op = Operator.EQUALS;
-        }
-        else
-        {
-            if (lowerPoint.booleanValue())
-            {
-                if (point.isInclusive() == null || point.isInclusive().booleanValue())
-                {
-                    op = Operator.GREATER_THAN_EQUALS;
-                }
-                else
-                {
-                    op = Operator.GREATER_THAN;
-                }
-            }
-            else
-            {
-                if (point.isInclusive() == null || point.isInclusive().booleanValue())
-                {
-                    op = Operator.LESS_THAN_EQUALS;
-                }
-                else
-                {
-                    op = Operator.LESS_THAN;
-                }
-            }
-        }
-        
         if (point.getNumericValue() != null)
         {
             ILiteral literal = f.createDoubleLiteral(point.getNumericValue());
-            return f.createDatatype(feature, op, literal);
+            return f.createDatatype(feature, operator, literal);
         }
         else if (point.getStringConstant() != null)
         {
             ILiteral literal = f.createStringLiteral(point.getStringConstant().name());
-            return f.createDatatype(feature, op, literal);
+            return f.createDatatype(feature, operator, literal);
         }
         else
         {
@@ -557,8 +580,7 @@ public class LegoClassifier
         }
         else
         {
-            return getValuesInBound(i.getLowerBound()) + getValuesInBound(i.getUpperBound())
-                    + getValueInPoint(i.getLowerPoint()) + getValueInPoint(i.getUpperPoint());
+            return getValuesInBound(i.getLowerBound()) + getValuesInBound(i.getUpperBound());
         }
     }
 
@@ -570,7 +592,8 @@ public class LegoClassifier
         }
         else
         {
-            return getValueInPoint(b.getLowerPoint()) + getValueInPoint(b.getUpperPoint());
+            return getValueInPoint(b.getLowerPoint()) + getValueInPoint(b.getUpperPoint()) 
+                    + ":" + b.isLowerPointInclusive() + ":" + b.isUpperPointInclusive();
         }
     }
 
