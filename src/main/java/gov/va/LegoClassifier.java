@@ -10,10 +10,14 @@ import gov.va.legoSchema.Lego;
 import gov.va.legoSchema.LegoList;
 import gov.va.legoSchema.Measurement;
 import gov.va.legoSchema.Point;
+import gov.va.legoSchema.PointDouble;
+import gov.va.legoSchema.PointLong;
+import gov.va.legoSchema.PointMeasurementConstant;
 import gov.va.legoSchema.Relation;
 import gov.va.legoSchema.RelationGroup;
 import gov.va.legoSchema.Type;
 import java.io.File;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -407,14 +411,20 @@ public class LegoClassifier
      */
     private IConcept processPoint(INamedFeature<String> feature, Point point, Operator operator)
     {
-        if (point.getNumericValue() != null)
+        if (point instanceof PointLong)
         {
-            ILiteral literal = f.createDoubleLiteral(point.getNumericValue());
+            //TODO no factory for long?
+            ILiteral literal = f.createDoubleLiteral(new Double(((PointLong)point).getValue()).doubleValue());
             return f.createDatatype(feature, operator, literal);
         }
-        else if (point.getStringConstant() != null)
+        else if (point instanceof PointDouble)
         {
-            ILiteral literal = f.createStringLiteral(point.getStringConstant().name());
+            ILiteral literal = f.createDoubleLiteral(((PointDouble)point).getValue());
+            return f.createDatatype(feature, operator, literal);
+        }
+        else if (point instanceof PointMeasurementConstant)
+        {
+            ILiteral literal = f.createStringLiteral(((PointMeasurementConstant)point).getValue().name());
             return f.createDatatype(feature, operator, literal);
         }
         else
@@ -603,13 +613,21 @@ public class LegoClassifier
         {
             return "";
         }
-        else if (p.getNumericValue() != null)
+        else if (p instanceof PointLong)
         {
-            return ":" + p.getNumericValue();
+            return ":" + ((PointLong)p).getValue();
+        }
+        else if (p instanceof PointDouble)
+        {
+            return ":" + ((PointDouble)p).getValue();
+        }
+        else if (p instanceof PointMeasurementConstant)
+        {
+            return ":" + ((PointMeasurementConstant)p).getValue().name();
         }
         else
         {
-            return ":" + p.getStringConstant().name();
+            throw new InvalidParameterException();
         }
     }
 

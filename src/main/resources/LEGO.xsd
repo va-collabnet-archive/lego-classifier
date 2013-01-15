@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
 
-<!-- Version 2013/01/10 -->
+<!-- Version 2013/01/15 -->
 <!-- 
 	Changelog:
+	1/15    - Changed point from a float to a double and allowed to to be a double or a long.  Also changed the way it is structured, 
+				so that the generated java code uses inheritance, instead of a choice (closer alignment to sim-api which uses Number, 
+				but that can't be mapped from XML - double or long should let us hold anything we need to)
 	1/10    - Reorganized Bound and Interval under measurement to better align with the sim-api.  No changes to what is representable.
 				Got rid of timing node, which served no purpose (moved measurement up a level under the assertion)
 	1/8     - Getting rid of the unnecessary assertionComponents field.  Allowed the assertionComponent in assertion to be an unbounded
@@ -220,13 +223,36 @@
 		</xs:complexType>
 	</xs:element >
 	
-	<xs:complexType name="point">
-		<xs:sequence>
-			<xs:choice>
-				<xs:element name="numericValue" type="xs:float" />
-				<xs:element name="stringConstant" type="measurementConstant" />
-			</xs:choice>
-		</xs:sequence>
+	<xs:complexType name="point" abstract="true"/>
+	
+	<xs:complexType name="pointLong" >
+		<xs:complexContent>
+			<xs:extension base="point">
+				<xs:sequence>
+					<xs:element name="value" type="xs:long"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	<xs:complexType name="pointDouble" >
+		<xs:complexContent>
+			<xs:extension base="point">
+				<xs:sequence>
+					<xs:element name="value" type="xs:double"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	<xs:complexType name="pointMeasurementConstant" >
+		<xs:complexContent>
+			<xs:extension base="point">
+				<xs:sequence>
+					<xs:element name="value" type="measurementConstant"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
 	</xs:complexType>
 
 	<xs:element name="units">
