@@ -413,7 +413,7 @@ public class LegoClassifier
     {
         if (point instanceof PointLong)
         {
-            //TODO no factory for long?
+            //TODO no factory for long?  This oversight was fixed, need to update when the library updates
             ILiteral literal = f.createDoubleLiteral(new Double(((PointLong)point).getValue()).doubleValue());
             return f.createDatatype(feature, operator, literal);
         }
