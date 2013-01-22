@@ -45,140 +45,138 @@ import au.csiro.snorocket.core.SnorocketReasoner;
  */
 public class LegoClassifier
 {
-    Logger logger = LoggerFactory.getLogger(LegoClassifier.class);
-
-    IReasoner<String> reasoner = new SnorocketReasoner<>();
-    Factory<String> f = new Factory<>();
-    Set<String> conceptIds = new HashSet<>();
-    Set<IAxiom> axioms = new HashSet<>();
-    INamedRole<String> roleGroup = f.createRole("RoleGroup");
-
-    public LegoClassifier()
+    static Logger logger = LoggerFactory.getLogger(LegoClassifier.class);
+    static String eol = System.getProperty("line.separator");
+    IReasoner<Integer> reasoner;
+    Factory<Integer> f = new Factory<>();
+    Set<Integer> conceptIds = new HashSet<>();
+    INamedRole<Integer> roleGroup = f.createRole("RoleGroup".hashCode());
+    HashSet<IAxiom> unclassifiedAxioms = new HashSet<>();
+    
+    public LegoClassifier(IReasoner<Integer> reasoner)
     {
-        for (File f : new File("legos").listFiles())
-        {
-
-            if (f.exists() && f.isFile() && f.getName().toLowerCase().endsWith(".xml"))
-            {
-                try
-                {
-                    LegoXMLUtils.validate((f));
-                    LegoList ll = LegoXMLUtils.readLegoList(f);
-                    logger.info("Processing " + f.getAbsolutePath());
-                    for (Lego l : ll.getLego())
-                    {
-                        classify(l);
-                    }
-
-                }
-                catch (Exception ex)
-                {
-                    logger.error("Error processing file " + f.getName(), ex);
-                }
-            }
-        }
-
-        System.out.println("******************************************");
-        for (IAxiom axiom : axioms)
-        {
-            System.out.println(axiom);
-        }
-        System.out.println("******************************************");
-
-        reasoner.classify(axioms);
-
-        // The taxonomy contains the inferred hierarchy
-        IOntology<String> t = reasoner.getClassifiedOntology();
-
-        for (String s : conceptIds)
-        {
-            // We can look for nodes using the concept ids.
-            Node<String> newNode = t.getNode(s);
-            if (newNode == null)
-            {
-                System.out.println("No Node " + s);
-            }
-            else
-            {
-                System.out.println("Equivalent Concepts " + newNode.getEquivalentConcepts());
-
-                // We can now look for the parent and child nodes
-                Set<Node<String>> parentNodes = newNode.getParents();
-                System.out.println("Parents:");
-                for (Node<String> parentNode : parentNodes)
-                {
-                    System.out.println("  " + parentNode.getEquivalentConcepts());
-                }
-
-                Set<Node<String>> childNodes = newNode.getChildren();
-                System.out.println("Children:");
-                for (Node<String> childNode : childNodes)
-                {
-                    System.out.println("  " + childNode.getEquivalentConcepts());
-                }
-            }
-
-            System.out.println("=====================================");
-        }
+        this.reasoner = reasoner;
+    }
+    
+    public Set<IAxiom> getUnclassifiedAxioms()
+    {
+        return unclassifiedAxioms;
+    }
+    
+    public void classifyAxioms()
+    {
+        reasoner.classify(unclassifiedAxioms);
+        unclassifiedAxioms.clear();
     }
 
-    private void classify(Lego l)
+    public String getClassificationSummary()
     {
-        for (Assertion a : l.getAssertion())
+        StringBuilder sb = new StringBuilder();
+
+        // The taxonomy contains the inferred hierarchy
+        IOntology<Integer> t = reasoner.getClassifiedOntology();
+
+        for (Integer s : conceptIds)
         {
-            // TODO assertion components
-            IConcept discernibleExpression = process(a.getDiscernible().getExpression());
-
-            if (null != discernibleExpression && discernibleExpression instanceof IConjunction)
+            // We can look for nodes using the concept ids.
+            Node<Integer> newNode = t.getNode(s);
+            if (newNode == null)
             {
-                String id = generateUUID(a.getDiscernible().getExpression());
-                IConcept discernibleConcept = f.createConcept(id);
-                axioms.add(f.createConceptInclusion(discernibleConcept, discernibleExpression));
-                axioms.add(f.createConceptInclusion(discernibleExpression, discernibleConcept));
-            }
-
-            IConcept qualifierExpression = process(a.getQualifier().getExpression());
-
-            if (null != qualifierExpression && qualifierExpression instanceof IConjunction)
-            {
-                String id = generateUUID(a.getQualifier().getExpression());
-                IConcept qualifierConcept = f.createConcept(id);
-                axioms.add(f.createConceptInclusion(qualifierConcept, qualifierExpression));
-                axioms.add(f.createConceptInclusion(qualifierExpression, qualifierConcept));
-            }
-
-            if (a.getValue().getExpression() != null)
-            {
-                IConcept valueExpression = process(a.getValue().getExpression());
-    
-                if (null != valueExpression && valueExpression instanceof IConjunction)
-                {
-                    String id = generateUUID(a.getValue().getExpression());
-                    IConcept valueConcept = f.createConcept(id);
-                    axioms.add(f.createConceptInclusion(valueConcept, valueExpression));
-                    axioms.add(f.createConceptInclusion(valueExpression, valueConcept));
-                }
-            }
-            else if (a.getValue().getMeasurement() != null)
-            {
-                logger.debug("Value Measurements that are not part of an expression are not classified");
-            }
-            else if (a.getValue().getText() != null && a.getValue().getText().length() > 0)
-            {
-                logger.debug("Value text that is not part of an expression is not classified");
-            }
-            else if (a.getValue().isBoolean() != null)
-            {
-                logger.debug("Boolean value that is not part of an expression is not classified");
+                sb.append("No Node " + s);
+                sb.append(eol);
             }
             else
             {
-                throw new RuntimeException("Missing value?");
+                sb.append("Equivalent Concepts " + newNode.getEquivalentConcepts());
+                sb.append(eol);
+
+                // We can now look for the parent and child nodes
+                Set<Node<Integer>> parentNodes = newNode.getParents();
+                sb.append("Parents:");
+                sb.append(eol);
+                for (Node<Integer> parentNode : parentNodes)
+                {
+                    sb.append("  " + parentNode.getEquivalentConcepts());
+                    sb.append(eol);
+                }
+
+                Set<Node<Integer>> childNodes = newNode.getChildren();
+                sb.append("Children:");
+                sb.append(eol);
+                for (Node<Integer> childNode : childNodes)
+                {
+                    sb.append("  " + childNode.getEquivalentConcepts());
+                    sb.append(eol);
+                }
             }
-            
-            if (a.getTiming() != null)
+
+            sb.append("=====================================");
+            sb.append(eol);
+        }
+        return sb.toString();
+    }
+
+    public void convertToAxioms(Lego ... legos)
+    {
+        for (Lego l : legos)
+        {
+            logger.debug("Converting Lego " + l.getLegoUUID() + " to axioms");
+            for (Assertion a : l.getAssertion())
             {
-                logger.debug("Timing information is not classified");
+                // TODO assertion components
+                IConcept discernibleExpression = process(a.getDiscernible().getExpression());
+    
+                if (null != discernibleExpression && discernibleExpression instanceof IConjunction)
+                {
+                    Integer id = generateUUID(a.getDiscernible().getExpression());
+                    IConcept discernibleConcept = f.createConcept(id);
+                    unclassifiedAxioms.add(f.createConceptInclusion(discernibleConcept, discernibleExpression));
+                    unclassifiedAxioms.add(f.createConceptInclusion(discernibleExpression, discernibleConcept));
+                }
+    
+                IConcept qualifierExpression = process(a.getQualifier().getExpression());
+    
+                if (null != qualifierExpression && qualifierExpression instanceof IConjunction)
+                {
+                    Integer id = generateUUID(a.getQualifier().getExpression());
+                    IConcept qualifierConcept = f.createConcept(id);
+                    unclassifiedAxioms.add(f.createConceptInclusion(qualifierConcept, qualifierExpression));
+                    unclassifiedAxioms.add(f.createConceptInclusion(qualifierExpression, qualifierConcept));
+                }
+    
+                if (a.getValue().getExpression() != null)
+                {
+                    IConcept valueExpression = process(a.getValue().getExpression());
+        
+                    if (null != valueExpression && valueExpression instanceof IConjunction)
+                    {
+                        Integer id = generateUUID(a.getValue().getExpression());
+                        IConcept valueConcept = f.createConcept(id);
+                        unclassifiedAxioms.add(f.createConceptInclusion(valueConcept, valueExpression));
+                        unclassifiedAxioms.add(f.createConceptInclusion(valueExpression, valueConcept));
+                    }
+                }
+                else if (a.getValue().getMeasurement() != null)
+                {
+                    logger.debug("Value Measurements that are not part of an expression are not classified");
+                }
+                else if (a.getValue().getText() != null && a.getValue().getText().length() > 0)
+                {
+                    logger.debug("Value text that is not part of an expression is not classified");
+                }
+                else if (a.getValue().isBoolean() != null)
+                {
+                    logger.debug("Boolean value that is not part of an expression is not classified");
+                }
+                else
+                {
+                    throw new RuntimeException("Missing value?");
+                }
+                
+                if (a.getTiming() != null)
+                {
+                    logger.debug("Timing information is not classified");
+                }
             }
         }
     }
@@ -273,7 +271,7 @@ public class LegoClassifier
         }
     }
 
-    private IConcept processMeasurement(INamedFeature<String> feature, Measurement measurement)
+    private IConcept processMeasurement(INamedFeature<Integer> feature, Measurement measurement)
     {
         IConcept unitsConcept = null;
         if (measurement.getUnits() != null && measurement.getUnits().getConcept() != null)
@@ -409,12 +407,11 @@ public class LegoClassifier
      * @param lowerPoint - null to say neither lower nor upper (just a point), true for lower, false for upper
      * @return
      */
-    private IConcept processPoint(INamedFeature<String> feature, Point point, Operator operator)
+    private IConcept processPoint(INamedFeature<Integer> feature, Point point, Operator operator)
     {
         if (point instanceof PointLong)
         {
-            //TODO no factory for long?  This oversight was fixed, need to update when the library updates
-            ILiteral literal = f.createDoubleLiteral(new Double(((PointLong)point).getValue()).doubleValue());
+            ILiteral literal = f.createLongLiteral(((PointLong)point).getValue());
             return f.createDatatype(feature, operator, literal);
         }
         else if (point instanceof PointDouble)
@@ -443,26 +440,26 @@ public class LegoClassifier
         if (dest.getExpression() != null)
         {
             // If the destination is an expression the type is role
-            INamedRole<String> role = f.createRole(getValuesInConcept(tp.getConcept()));
+            INamedRole<Integer> role = f.createRole(getValuesInConcept(tp.getConcept()));
             IConcept destExpression = process(dest.getExpression());
             return f.createExistential(role, destExpression);
         }
         else if (dest.getMeasurement() != null)
         {
-            INamedFeature<String> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
+            INamedFeature<Integer> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
             IConcept measurementConcept = processMeasurement(feature, dest.getMeasurement());
             return measurementConcept;
         }
         else if (dest.getText() != null && r.getDestination().getText().length() > 0)
         {
-            INamedFeature<String> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
+            INamedFeature<Integer> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
             ILiteral literal = f.createStringLiteral(dest.getText());
             IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
             return data;
         }
         else if (dest.isBoolean() != null)
         {
-            INamedFeature<String> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
+            INamedFeature<Integer> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
             ILiteral literal = f.createBooleanLiteral(dest.isBoolean());
             IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
             return data;
@@ -477,14 +474,14 @@ public class LegoClassifier
      * Generate a unique ID based off of the expressions (and all subconcepts)
      */
     //TODO all of these generate functions need to be reworked so that they generate an ID that doesn't change if the order of the children changes
-    private String generateUUID(Expression expression)
+    private int generateUUID(Expression expression)
     {        
         StringBuilder sb = new StringBuilder();
         buildIDComponents(sb, expression);
         UUID uuid = UUID.nameUUIDFromBytes(sb.toString().getBytes());
         logger.debug("Created " + uuid.toString() + " from " + sb.toString());
-        conceptIds.add(uuid.toString());
-        return uuid.toString();
+        conceptIds.add(uuid.toString().hashCode());
+        return uuid.toString().hashCode();
     }
 
     private void buildIDComponents(StringBuilder sb, Expression expression)
@@ -561,14 +558,14 @@ public class LegoClassifier
         sb.append(getIdForConcept(c));
     }
 
-    private String getIdForConcept(Concept c)
+    private Integer getIdForConcept(Concept c)
     {
-        String s = getValuesInConcept(c);
+        Integer s = getValuesInConcept(c).hashCode();
         conceptIds.add(s);
         return s;
     }
 
-    private String getValuesInConcept(Concept c)
+    private Integer getValuesInConcept(Concept c)
     {
         String conceptId = null;
         if (c.getSctid() != null)
@@ -579,7 +576,7 @@ public class LegoClassifier
         {
             conceptId = c.getUuid();
         }
-        return conceptId;
+        return conceptId.hashCode();
     }
 
     private String getValuesInInterval(Interval i)
@@ -636,6 +633,47 @@ public class LegoClassifier
      */
     public static void main(String[] args)
     {
-        new LegoClassifier();
+        ArrayList<Lego> legos = new ArrayList<Lego>();
+        for (File f : new File("legos").listFiles())
+        {
+            if (f.exists() && f.isFile() && f.getName().toLowerCase().endsWith(".xml"))
+            {
+                try
+                {
+                    LegoXMLUtils.validate((f));
+                    LegoList ll = LegoXMLUtils.readLegoList(f);
+                    logger.info("Reading " + f.getAbsolutePath());
+                    for (Lego l : ll.getLego())
+                    {
+                        legos.add(l);
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    logger.error("Error reading file " + f.getName(), ex);
+                }
+            }
+        }
+        
+        LegoClassifier lc = new LegoClassifier(new SnorocketReasoner<Integer>());        
+        lc.convertToAxioms(legos.toArray(new Lego[legos.size()]));
+        
+        System.out.println("******************************************");
+        System.out.println("Converted Axioms");
+        for (IAxiom axiom : lc.getUnclassifiedAxioms())
+        {
+            System.out.println(axiom);
+        }
+        System.out.println("******************************************");
+       
+
+        logger.info("Classifying Axioms");
+        lc.classifyAxioms();
+        logger.info("Done Classifying");
+        
+        
+        logger.info("Classification Summary:");
+        System.out.println(lc.getClassificationSummary());
     }
 }

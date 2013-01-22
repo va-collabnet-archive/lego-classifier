@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -61,6 +62,12 @@ public class LegoXMLUtils
             logger.debug("The XML file {} is invalid: {}", path, e.getLocalizedMessage());
             throw e;
         }
+    }
+    
+    public static LegoList readLegoList(InputStream is) throws JAXBException, FileNotFoundException
+    {
+        Unmarshaller um = jc.createUnmarshaller();
+        return (LegoList) um.unmarshal(is);
     }
 
     public static LegoList readLegoList(File path) throws JAXBException, FileNotFoundException

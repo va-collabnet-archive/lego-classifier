@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<legoList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="LEGO.xsd">
+    <groupName>Pressure ulcer observables</groupName>
+    <legoListUUID>4ac68aa0-5e66-4999-a6a1-9097da4077dc</legoListUUID>
+    <groupDescription>This group contains LEGOs associated with Pressure ulcer observables</groupDescription>
+    <lego>
+        <legoUUID>9862a8da-5aec-3439-9217-970de716a582</legoUUID>
+        <stamp status="Active" time="2013-01-18T16:20:58.460-06:00" author="Apelon" module="VHA_SIM_XML_Export" path="Jan 2012 Release Candidate Path"/>
+        <pncs id="0" name="Pncs Doesn't Exist" value="YES"/>
+        <assertion>
+            <assertionUUID>217a5b16-b0bf-45e6-baad-8a712f3956e8</assertionUUID>
+            <discernible>
+                <expression>
+                    <concept sctid="648" desc="Decubitus ulcer (observable entity)"/>
+                    <relation>
+                        <type>
+                            <concept sctid="36" desc="INHERES IN"/>
+                        </type>
+                        <destination>
+                            <expression>
+<concept sctid="418172001" desc="Decubitus ulcer (morphologic abnormality)"/>
+                            </expression>
+                        </destination>
+                    </relation>
+                    <relation>
+                        <type>
+                            <concept sctid="38" desc="INHERENT LOCATION"/>
+                        </type>
+                        <destination>
+                            <expression>
+<concept sctid="84607009" desc="Skin structure of heel (body structure)"/>
+<relation>
+    <type>
+        <concept sctid="17" desc="Laterality (attribute)"/>
+    </type>
+    <destination>
+        <expression>
+            <concept sctid="7771000" desc="Left (qualifier value)"/>
+        </expression>
+    </destination>
+</relation>
+<relation>
+    <type>
+        <concept sctid="17" desc="Laterality (attribute)"/>
+    </type>
+    <destination>
+        <expression>
+            <concept sctid="7771000" desc="Left (qualifier value)"/>
+        </expression>
+    </destination>
+</relation>
+                            </expression>
+                        </destination>
+                    </relation>
+                </expression>
+            </discernible>
+            <qualifier>
+                <expression>
+                    <concept sctid="108217004" desc="Interview, history AND/OR physical examination"/>
+                </expression>
+            </qualifier>
+            <value>
+                <expression>
+                    <concept sctid="52101004" desc="Present"/>
+                </expression>
+            </value>
+        </assertion>
+    </lego>
+</legoList>
