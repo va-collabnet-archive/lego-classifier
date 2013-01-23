@@ -32,7 +32,7 @@ public class SnomedClassifyTest
         }
         
         @SuppressWarnings("unchecked")
-        IReasoner<Integer> reasoner = SnorocketReasoner.load(this.getClass().getResourceAsStream("/classifier.state"));
+        IReasoner<String> reasoner = SnorocketReasoner.load(this.getClass().getResourceAsStream("/classifier_uuid.state"));
        
         LegoClassifier lc = new LegoClassifier(reasoner);        
         lc.convertToAxioms(legos.toArray(new Lego[legos.size()]));

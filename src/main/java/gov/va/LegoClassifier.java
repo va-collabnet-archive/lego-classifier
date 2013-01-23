@@ -17,6 +17,7 @@ import gov.va.legoSchema.Relation;
 import gov.va.legoSchema.RelationGroup;
 import gov.va.legoSchema.Type;
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -47,13 +48,13 @@ public class LegoClassifier
 {
     static Logger logger = LoggerFactory.getLogger(LegoClassifier.class);
     static String eol = System.getProperty("line.separator");
-    IReasoner<Integer> reasoner;
-    Factory<Integer> f = new Factory<>();
-    Set<Integer> conceptIds = new HashSet<>();
-    INamedRole<Integer> roleGroup = f.createRole("RoleGroup".hashCode());
+    IReasoner<String> reasoner;
+    Factory<String> f = new Factory<>();
+    Set<String> conceptIds = new HashSet<>();
+    INamedRole<String> roleGroup = f.createRole("RoleGroup");
     HashSet<IAxiom> unclassifiedAxioms = new HashSet<>();
     
-    public LegoClassifier(IReasoner<Integer> reasoner)
+    public LegoClassifier(IReasoner<String> reasoner)
     {
         this.reasoner = reasoner;
     }
@@ -74,12 +75,12 @@ public class LegoClassifier
         StringBuilder sb = new StringBuilder();
 
         // The taxonomy contains the inferred hierarchy
-        IOntology<Integer> t = reasoner.getClassifiedOntology();
+        IOntology<String> t = reasoner.getClassifiedOntology();
 
-        for (Integer s : conceptIds)
+        for (String s : conceptIds)
         {
             // We can look for nodes using the concept ids.
-            Node<Integer> newNode = t.getNode(s);
+            Node<String> newNode = t.getNode(s);
             if (newNode == null)
             {
                 sb.append("No Node " + s);
@@ -91,19 +92,19 @@ public class LegoClassifier
                 sb.append(eol);
 
                 // We can now look for the parent and child nodes
-                Set<Node<Integer>> parentNodes = newNode.getParents();
+                Set<Node<String>> parentNodes = newNode.getParents();
                 sb.append("Parents:");
                 sb.append(eol);
-                for (Node<Integer> parentNode : parentNodes)
+                for (Node<String> parentNode : parentNodes)
                 {
                     sb.append("  " + parentNode.getEquivalentConcepts());
                     sb.append(eol);
                 }
 
-                Set<Node<Integer>> childNodes = newNode.getChildren();
+                Set<Node<String>> childNodes = newNode.getChildren();
                 sb.append("Children:");
                 sb.append(eol);
-                for (Node<Integer> childNode : childNodes)
+                for (Node<String> childNode : childNodes)
                 {
                     sb.append("  " + childNode.getEquivalentConcepts());
                     sb.append(eol);
@@ -128,7 +129,7 @@ public class LegoClassifier
     
                 if (null != discernibleExpression && discernibleExpression instanceof IConjunction)
                 {
-                    Integer id = generateUUID(a.getDiscernible().getExpression());
+                    String id = generateUUID(a.getDiscernible().getExpression());
                     IConcept discernibleConcept = f.createConcept(id);
                     unclassifiedAxioms.add(f.createConceptInclusion(discernibleConcept, discernibleExpression));
                     unclassifiedAxioms.add(f.createConceptInclusion(discernibleExpression, discernibleConcept));
@@ -138,7 +139,7 @@ public class LegoClassifier
     
                 if (null != qualifierExpression && qualifierExpression instanceof IConjunction)
                 {
-                    Integer id = generateUUID(a.getQualifier().getExpression());
+                    String id = generateUUID(a.getQualifier().getExpression());
                     IConcept qualifierConcept = f.createConcept(id);
                     unclassifiedAxioms.add(f.createConceptInclusion(qualifierConcept, qualifierExpression));
                     unclassifiedAxioms.add(f.createConceptInclusion(qualifierExpression, qualifierConcept));
@@ -150,7 +151,7 @@ public class LegoClassifier
         
                     if (null != valueExpression && valueExpression instanceof IConjunction)
                     {
-                        Integer id = generateUUID(a.getValue().getExpression());
+                        String id = generateUUID(a.getValue().getExpression());
                         IConcept valueConcept = f.createConcept(id);
                         unclassifiedAxioms.add(f.createConceptInclusion(valueConcept, valueExpression));
                         unclassifiedAxioms.add(f.createConceptInclusion(valueExpression, valueConcept));
@@ -271,7 +272,7 @@ public class LegoClassifier
         }
     }
 
-    private IConcept processMeasurement(INamedFeature<Integer> feature, Measurement measurement)
+    private IConcept processMeasurement(INamedFeature<String> feature, Measurement measurement)
     {
         IConcept unitsConcept = null;
         if (measurement.getUnits() != null && measurement.getUnits().getConcept() != null)
@@ -407,7 +408,7 @@ public class LegoClassifier
      * @param lowerPoint - null to say neither lower nor upper (just a point), true for lower, false for upper
      * @return
      */
-    private IConcept processPoint(INamedFeature<Integer> feature, Point point, Operator operator)
+    private IConcept processPoint(INamedFeature<String> feature, Point point, Operator operator)
     {
         if (point instanceof PointLong)
         {
@@ -440,26 +441,26 @@ public class LegoClassifier
         if (dest.getExpression() != null)
         {
             // If the destination is an expression the type is role
-            INamedRole<Integer> role = f.createRole(getValuesInConcept(tp.getConcept()));
+            INamedRole<String> role = f.createRole(getIdForConcept(tp.getConcept()));
             IConcept destExpression = process(dest.getExpression());
             return f.createExistential(role, destExpression);
         }
         else if (dest.getMeasurement() != null)
         {
-            INamedFeature<Integer> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
+            INamedFeature<String> feature = f.createFeature(getIdForConcept(tp.getConcept()));
             IConcept measurementConcept = processMeasurement(feature, dest.getMeasurement());
             return measurementConcept;
         }
         else if (dest.getText() != null && r.getDestination().getText().length() > 0)
         {
-            INamedFeature<Integer> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
+            INamedFeature<String> feature = f.createFeature(getIdForConcept(tp.getConcept()));
             ILiteral literal = f.createStringLiteral(dest.getText());
             IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
             return data;
         }
         else if (dest.isBoolean() != null)
         {
-            INamedFeature<Integer> feature = f.createFeature(getValuesInConcept(tp.getConcept()));
+            INamedFeature<String> feature = f.createFeature(getIdForConcept(tp.getConcept()));
             ILiteral literal = f.createBooleanLiteral(dest.isBoolean());
             IConcept data = f.createDatatype(feature, Operator.EQUALS, literal);
             return data;
@@ -474,14 +475,15 @@ public class LegoClassifier
      * Generate a unique ID based off of the expressions (and all subconcepts)
      */
     //TODO all of these generate functions need to be reworked so that they generate an ID that doesn't change if the order of the children changes
-    private int generateUUID(Expression expression)
+    private String generateUUID(Expression expression)
     {        
+        //Note, this only gets called for conjunction expressions...
         StringBuilder sb = new StringBuilder();
         buildIDComponents(sb, expression);
         UUID uuid = UUID.nameUUIDFromBytes(sb.toString().getBytes());
         logger.debug("Created " + uuid.toString() + " from " + sb.toString());
-        conceptIds.add(uuid.toString().hashCode());
-        return uuid.toString().hashCode();
+        conceptIds.add(uuid.toString());
+        return uuid.toString();
     }
 
     private void buildIDComponents(StringBuilder sb, Expression expression)
@@ -489,7 +491,7 @@ public class LegoClassifier
         sb.append(":");
         if (expression.getConcept() != null)
         {
-            sb.append(getValuesInConcept(expression.getConcept()));
+            sb.append(getIdForConcept(expression.getConcept()));
         }
         else if (expression.getExpression().size() > 0)
         {
@@ -558,25 +560,37 @@ public class LegoClassifier
         sb.append(getIdForConcept(c));
     }
 
-    private Integer getIdForConcept(Concept c)
+    private String getIdForConcept(Concept c)
     {
-        Integer s = getValuesInConcept(c).hashCode();
-        conceptIds.add(s);
-        return s;
-    }
-
-    private Integer getValuesInConcept(Concept c)
-    {
-        String conceptId = null;
-        if (c.getSctid() != null)
+        String id = null;
+        if (c.getUuid() != null && c.getUuid().length() > 0)
         {
-            conceptId = c.getSctid().toString();
+            id = c.getUuid();
+        }
+        else if (c.getSctid() != null)
+        {
+            //This is how snomed UUIDs are calculated
+            try
+            {
+                id = UUID.nameUUIDFromBytes(("org.snomed." + c.getSctid().toString()).getBytes("8859_1")).toString();
+            }
+            catch (UnsupportedEncodingException e)
+            {
+                throw new RuntimeException(e);
+            }
         }
         else
         {
-            conceptId = c.getUuid();
+            throw new IllegalArgumentException("No ID found for concept " + c.getDesc());
         }
-        return conceptId.hashCode();
+        
+        //should be impossible, but just to be safe...
+        if (id == null)
+        {
+            throw new RuntimeException("oops");
+        }
+        conceptIds.add(id);
+        return id;
     }
 
     private String getValuesInInterval(Interval i)
@@ -656,7 +670,7 @@ public class LegoClassifier
             }
         }
         
-        LegoClassifier lc = new LegoClassifier(new SnorocketReasoner<Integer>());        
+        LegoClassifier lc = new LegoClassifier(new SnorocketReasoner<String>());        
         lc.convertToAxioms(legos.toArray(new Lego[legos.size()]));
         
         System.out.println("******************************************");

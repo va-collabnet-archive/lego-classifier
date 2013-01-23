@@ -5,47 +5,47 @@
     <groupDescription>This group contains LEGOs associated with Pressure ulcer observables</groupDescription>
     <lego>
         <legoUUID>9862a8da-5aec-3439-9217-970de716a582</legoUUID>
-        <stamp status="Active" time="2013-01-18T16:20:58.460-06:00" author="Apelon" module="VHA_SIM_XML_Export" path="Jan 2012 Release Candidate Path"/>
+        <stamp status="Active" time="2013-01-18T16:20:58.460-06:00" author="Apelon" module="VHA_SIM_XML_Export" path="Jan 2012 Release Candidate Path" uuid="872fe82c-7d03-4f7a-a93e-a702184899a0"/>
         <pncs id="0" name="Pncs Doesn't Exist" value="YES"/>
         <assertion>
             <assertionUUID>217a5b16-b0bf-45e6-baad-8a712f3956e8</assertionUUID>
             <discernible>
                 <expression>
-                    <concept sctid="648" desc="Decubitus ulcer (observable entity)"/>
+                    <concept sctid="648" uuid="443cb001-c138-3256-9a0d-90720d6ce111" desc="Decubitus ulcer (observable entity)"/>
                     <relation>
                         <type>
-                            <concept sctid="36" desc="INHERES IN"/>
+                            <concept sctid="36" uuid="19ca14e7-ea63-38a4-ae0e-b13d585e4c22" desc="Inheres In"/>
                         </type>
                         <destination>
                             <expression>
-<concept sctid="418172001" desc="Decubitus ulcer (morphologic abnormality)"/>
+<concept sctid="418172001" uuid="391616d4-bb39-3ebf-b19e-0d08653821f8" desc="Decubitus ulcer (morphologic abnormality)"/>
                             </expression>
                         </destination>
                     </relation>
                     <relation>
                         <type>
-                            <concept sctid="38" desc="INHERENT LOCATION"/>
+                            <concept sctid="38" uuid="a5771bce-93e2-30c3-af7c-d9dfd0e5deaa" desc="Inherent Location"/>
                         </type>
                         <destination>
                             <expression>
-<concept sctid="84607009" desc="Skin structure of heel (body structure)"/>
+<concept sctid="84607009" uuid="eec0dbcd-b508-353c-ad82-4af8cab643fa" desc="Skin structure of heel (body structure)"/>
 <relation>
     <type>
-        <concept sctid="17" desc="Laterality (attribute)"/>
+        <concept sctid="17" uuid="70efdf2e-c9b0-3607-9795-c442636b55fb" desc="Laterality (attribute)"/>
     </type>
     <destination>
         <expression>
-            <concept sctid="7771000" desc="Left (qualifier value)"/>
+            <concept sctid="7771000" uuid="204c773e-2ba9-3374-80fb-104f78f4b98d" desc="Left (qualifier value)"/>
         </expression>
     </destination>
 </relation>
 <relation>
     <type>
-        <concept sctid="17" desc="Laterality (attribute)"/>
+        <concept sctid="17" uuid="70efdf2e-c9b0-3607-9795-c442636b55fb" desc="Laterality (attribute)"/>
     </type>
     <destination>
         <expression>
-            <concept sctid="7771000" desc="Left (qualifier value)"/>
+            <concept sctid="7771000" uuid="204c773e-2ba9-3374-80fb-104f78f4b98d" desc="Left (qualifier value)"/>
         </expression>
     </destination>
 </relation>
@@ -56,12 +56,12 @@
             </discernible>
             <qualifier>
                 <expression>
-                    <concept sctid="108217004" desc="Interview, history AND/OR physical examination"/>
+                    <concept sctid="108217004" uuid="ed2f734a-9196-3410-ae04-751808edf584" desc="Interview, history AND/OR physical examination (procedure)"/>
                 </expression>
             </qualifier>
             <value>
                 <expression>
-                    <concept sctid="52101004" desc="Present"/>
+                    <concept sctid="52101004" uuid="850e9dff-7c45-3db4-8cf9-34c8fb7359fd" desc="Present (qualifier value)"/>
                 </expression>
             </value>
         </assertion>
