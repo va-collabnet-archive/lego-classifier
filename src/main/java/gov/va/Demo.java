@@ -14,13 +14,18 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.JAXBException;
 
 import au.csiro.ontology.IOntology;
 import au.csiro.ontology.Node;
+import au.csiro.ontology.axioms.IAxiom;
+import au.csiro.ontology.axioms.IConceptInclusion;
 import au.csiro.ontology.classification.IReasoner;
+import au.csiro.ontology.model.INamedConcept;
 import au.csiro.snorocket.core.SnorocketReasoner;
 import au.csiro.snorocket.core.util.Utils;
 
@@ -76,13 +81,24 @@ public Demo() {
         ArrayList<Lego> legos = new ArrayList<Lego>();
         LegoList ll = LegoXMLUtils.readLegoList(
         		this.getClass().getResourceAsStream(
-        				"/Pressure ulcer observables.xml"));
+        				"/Nested.xml"));
         for (Lego l : ll.getLego()) {
             legos.add(l);
         }
         
         LegoClassifier lc = new LegoClassifier(reasoner);        
         lc.convertToAxioms(legos.toArray(new Lego[legos.size()]));
+
+        // Extract the UUIDs for the Assertions 
+        final Set<String> assertionUUIDs = new HashSet<>();
+        for (IAxiom axiom: lc.getUnclassifiedAxioms()) {
+        	if (axiom instanceof IConceptInclusion) {
+        		IConceptInclusion ci = (IConceptInclusion) axiom;
+        		if (ci.lhs() instanceof INamedConcept<?>) {
+        			assertionUUIDs.add(((INamedConcept<String>) ci.lhs()).getId());
+        		}
+        	}
+        }
         
         // 3. Classify incrementally
         System.out.println("Classifying incrementally");
@@ -92,16 +108,17 @@ public Demo() {
         System.out.println("Retrieving taxonomy");
         IOntology<String> ont = reasoner.getClassifiedOntology();
         
-        // 5. Get node for new concept
-        Node<String> newNode = ont.getNodeMap().get(
-        		"0780dabd-0f2f-3b04-9ef0-a5af9c30b9a6");
-        
-        // 6. Print the new node
-        Utils.printTaxonomy(
-                newNode.getParents().iterator().next(), 
-                ont.getBottomNode(), 
-                uuidToDescMap
-        );
+        for (String id: assertionUUIDs) {
+        	// 5. Get node for new concept
+        	Node<String> newNode = ont.getNodeMap().get(id);
+
+        	// 6. Print the new node
+        	Utils.printTaxonomy(
+        			newNode.getParents().iterator().next(), 
+        			ont.getBottomNode(), 
+        			uuidToDescMap
+        			);
+        }
     }
     
     /**
