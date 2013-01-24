@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<legoList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="LEGO.xsd">
+    <groupName>Pressure ulcer observables</groupName>
+    <legoListUUID>4ac68aa0-5e66-4999-a6a1-9097da4077dc</legoListUUID>
+    <groupDescription>This group contains LEGOs associated with Pressure ulcer observables</groupDescription>
+    <lego>
+        <legoUUID>9862a8da-5aec-3439-9217-970de716a582</legoUUID>
+        <stamp status="Active" time="2013-01-18T16:20:58.460-06:00" author="Apelon" module="VHA_SIM_XML_Export" path="Jan 2012 Release Candidate Path" uuid="872fe82c-7d03-4f7a-a93e-a702184899a0"/>
+        <pncs id="0" name="Pncs Doesn't Exist" value="YES"/>
+        <assertion>
+            <assertionUUID>217a5b16-b0bf-45e6-baad-8a712f3956e8</assertionUUID>
+            <discernible>
+                <expression>
+                    <concept sctid="400192002" uuid="824b4136-e350-3904-9d8e-9dd6f1178e5b" desc="Decubitus ulcer (disorder)"/>
+                    <relationGroup>
+                    <relation>
+                        <type>
+                            <concept sctid="363698007" uuid="3a6d919d-6c25-3aae-9bc3-983ead83a928" desc="Finding Site"/>
+                        </type>
+                        <destination>
+                            <expression>
+<concept sctid="84607009" uuid="eec0dbcd-b508-353c-ad82-4af8cab643fa" desc="Skin structure of heel (body structure)"/>
+<relation>
+    <type>
+        <concept sctid="272741003" uuid="26ca4590-bbe5-327c-a40a-ba56dc86996b" desc="Laterality (attribute)"/>
+    </type>
+    <destination>
+        <expression>
+            <concept sctid="7771000" uuid="204c773e-2ba9-3374-80fb-104f78f4b98d" desc="Left (qualifier value)"/>
+        </expression>
+    </destination>
+</relation>
+                            </expression>
+                        </destination>
+                    </relation>
+                    <relation>
+                    	<type>
+                    		<concept desc="Associated morphology"
+                    			uuid="3161e31b-7d00-33d9-8cbd-9c33dc153aae">
+                    		</concept></type>
+                    	<destination>
+                    		<expression>
+                    			<concept
+                    				uuid="391616d4-bb39-3ebf-b19e-0d08653821f8"
+                    				desc="Decubitus ulcer (morphologic abnormality)">
+                    			</concept></expression></destination></relation>
+                    </relationGroup>
+                </expression>
+            </discernible>
+            <qualifier>
+                <expression>
+                    <concept sctid="108217004" uuid="ed2f734a-9196-3410-ae04-751808edf584" desc="Interview, history AND/OR physical examination (procedure)"/>
+                </expression>
+            </qualifier>
+            <value>
+                <expression>
+                    <concept sctid="52101004" uuid="850e9dff-7c45-3db4-8cf9-34c8fb7359fd" desc="Present (qualifier value)"/>
+                </expression>
+            </value>
+        </assertion>
+    </lego>
+</legoList>
