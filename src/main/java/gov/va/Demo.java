@@ -60,11 +60,9 @@ public Demo() {
             String line = null;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split("[,]");
-                String desc = null;
-                if(parts.length < 4) {
-                    desc = "";
-                } else {
-                	desc = parts[3];
+                String desc = "";
+                if(parts.length == 4) {
+                    desc = parts[3];
                 }
                 if(parts[1].equals("NA")) continue;
                 sctToUuidMap.put(parts[1], parts[2]);
@@ -113,11 +111,13 @@ public Demo() {
         	Node<String> newNode = ont.getNodeMap().get(id);
 
         	// 6. Print the new node
-        	Utils.printTaxonomy(
-        			newNode.getParents().iterator().next(), 
+        	for(Node<String> node : newNode.getParents()) {
+        		Utils.printTaxonomy(
+        			node, 
         			ont.getBottomNode(), 
         			uuidToDescMap
-        			);
+        		);
+        	}
         }
     }
     
