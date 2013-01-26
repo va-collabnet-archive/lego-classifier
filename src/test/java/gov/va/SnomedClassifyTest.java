@@ -43,6 +43,6 @@ public class SnomedClassifyTest
         
         lc.classifyAxioms();
 
-        assertEquals("unexpected node count after classification", 397325, reasoner.getClassifiedOntology().getNodeMap().size());
+        assertEquals("unexpected node count after classification", 397322, reasoner.getClassifiedOntology().getNodeMap().size());
     }
 }
