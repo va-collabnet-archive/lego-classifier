@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<legoList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="LEGO.xsd">
-    <groupName>Pressure ulcer observables</groupName>
-    <legoListUUID>4ac68aa0-5e66-4999-a6a1-9097da4077dc</legoListUUID>
+<legoList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../main/resources/LEGO.xsd">
+    <groupName>Pressure ulcer observables (nested)</groupName>
+    <legoListUUID>4ac68aa0-5e66-4999-a6a1-1097da4077dc</legoListUUID>
     <groupDescription>This group contains LEGOs associated with Pressure ulcer observables</groupDescription>
     <lego>
-        <legoUUID>9862a8da-5aec-3439-9217-970de716a582</legoUUID>
+        <legoUUID>9864a8da-5aec-3439-9217-970de716a582</legoUUID>
         <stamp status="Active" time="2013-01-18T16:20:58.460-06:00" author="Apelon" module="VHA_SIM_XML_Export" path="Jan 2012 Release Candidate Path" uuid="872fe82c-7d03-4f7a-a93e-a702184899a0"/>
         <pncs id="0" name="Pncs Doesn't Exist" value="YES"/>
         <assertion>
-            <assertionUUID>217a5b16-b0bf-45e6-baad-8a712f3956e8</assertionUUID>
+            <assertionUUID>217a7b16-b0bf-45e6-baad-8a712f3956e8</assertionUUID>
             <discernible>
                 <expression>
                     <concept sctid="400192002" uuid="824b4136-e350-3904-9d8e-9dd6f1178e5b" desc="Decubitus ulcer (disorder)"/>
@@ -35,15 +35,14 @@
                     </relation>
                     <relation>
                     	<type>
-                    		<concept desc="Associated morphology"
-                    			uuid="3161e31b-7d00-33d9-8cbd-9c33dc153aae">
-                    		</concept></type>
+                    		<concept desc="Associated morphology" uuid="3161e31b-7d00-33d9-8cbd-9c33dc153aae"/>
+						</type>
                     	<destination>
                     		<expression>
-                    			<concept
-                    				uuid="391616d4-bb39-3ebf-b19e-0d08653821f8"
-                    				desc="Decubitus ulcer (morphologic abnormality)">
-                    			</concept></expression></destination></relation>
+                    			<concept uuid="391616d4-bb39-3ebf-b19e-0d08653821f8" desc="Decubitus ulcer (morphologic abnormality)"/>
+                    		</expression>
+                    	</destination>
+                    </relation>
                     </relationGroup>
                 </expression>
             </discernible>
