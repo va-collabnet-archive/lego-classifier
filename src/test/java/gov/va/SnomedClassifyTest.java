@@ -1,8 +1,9 @@
 package gov.va;
 
 import static org.junit.Assert.assertEquals;
-import gov.va.legoSchema.Lego;
-import gov.va.legoSchema.LegoList;
+import gov.va.legoEdit.formats.LegoXMLUtils;
+import gov.va.legoEdit.model.schemaModel.Lego;
+import gov.va.legoEdit.model.schemaModel.LegoList;
 import java.io.IOException;
 import java.util.ArrayList;
 import javax.xml.bind.JAXBException;
@@ -21,28 +22,28 @@ import au.csiro.snorocket.core.SnorocketReasoner;
  */
 public class SnomedClassifyTest
 {
-    @Test
-    public void testSnomedClassify() throws IOException, SAXException, JAXBException 
-    {
-        ArrayList<Lego> legos = new ArrayList<Lego>();
-        LegoList ll = LegoXMLUtils.readLegoList(this.getClass().getResourceAsStream("/Pressure ulcer observables.xml"));
-        for (Lego l : ll.getLego())
-        {
-            legos.add(l);
-        }
-        
-        @SuppressWarnings("unchecked")
-        IReasoner<String> reasoner = SnorocketReasoner.load(this.getClass().getResourceAsStream("/classifier_uuid.state"));
-       
-        LegoClassifier lc = new LegoClassifier(reasoner);        
-        lc.convertToAxioms(legos.toArray(new Lego[legos.size()]));
+	@Test
+	public void testSnomedClassify() throws IOException, SAXException, JAXBException
+	{
+		ArrayList<Lego> legos = new ArrayList<Lego>();
+		LegoList ll = LegoXMLUtils.readLegoList(this.getClass().getResourceAsStream("/Pressure ulcer observables.xml"));
+		for (Lego l : ll.getLego())
+		{
+			legos.add(l);
+		}
 
-        assertEquals("Wrong number of Axioms", 2, lc.getUnclassifiedAxioms().size());
-       
-        assertEquals("unexpected node count before classification", 397320, reasoner.getClassifiedOntology().getNodeMap().size());
-        
-        lc.classifyAxioms();
+		@SuppressWarnings("unchecked") 
+		IReasoner<String> reasoner = SnorocketReasoner.load(this.getClass().getResourceAsStream("/classifier_uuid.state"));
 
-        assertEquals("unexpected node count after classification", 397322, reasoner.getClassifiedOntology().getNodeMap().size());
-    }
+		LegoClassifier lc = new LegoClassifier(reasoner);
+		lc.convertToAxioms(legos.toArray(new Lego[legos.size()]));
+
+		assertEquals("Wrong number of Axioms", 2, lc.getUnclassifiedAxioms().size());
+
+		assertEquals("unexpected node count before classification", 397320, reasoner.getClassifiedOntology().getNodeMap().size());
+
+		lc.classifyAxioms();
+
+		assertEquals("unexpected node count after classification", 397322, reasoner.getClassifiedOntology().getNodeMap().size());
+	}
 }

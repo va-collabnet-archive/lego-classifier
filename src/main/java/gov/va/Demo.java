@@ -4,9 +4,10 @@
  */
 package gov.va;
 
-import gov.va.legoSchema.Lego;
-import gov.va.legoSchema.LegoList;
 
+import gov.va.legoEdit.formats.LegoXMLUtils;
+import gov.va.legoEdit.model.schemaModel.Lego;
+import gov.va.legoEdit.model.schemaModel.LegoList;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,9 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import javax.xml.bind.JAXBException;
-
 import au.csiro.ontology.IOntology;
 import au.csiro.ontology.Node;
 import au.csiro.ontology.axioms.IAxiom;
