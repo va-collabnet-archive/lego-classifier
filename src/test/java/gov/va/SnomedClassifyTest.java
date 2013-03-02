@@ -4,7 +4,11 @@ import static org.junit.Assert.assertEquals;
 import gov.va.legoEdit.formats.LegoXMLUtils;
 import gov.va.legoEdit.model.schemaModel.Lego;
 import gov.va.legoEdit.model.schemaModel.LegoList;
+import gov.va.legoEdit.storage.sim.util.SchemaToSimConversions;
+import gov.va.sim.lego.LegoBI;
+import java.beans.PropertyVetoException;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import javax.xml.bind.JAXBException;
 import org.junit.Test;
@@ -23,7 +27,7 @@ import au.csiro.snorocket.core.SnorocketReasoner;
 public class SnomedClassifyTest
 {
 	@Test
-	public void testSnomedClassify() throws IOException, SAXException, JAXBException
+	public void testLegoSnomedClassify() throws IOException, SAXException, JAXBException
 	{
 		ArrayList<Lego> legos = new ArrayList<Lego>();
 		LegoList ll = LegoXMLUtils.readLegoList(this.getClass().getResourceAsStream("/Pressure ulcer observables.xml"));
@@ -37,6 +41,31 @@ public class SnomedClassifyTest
 
 		LegoClassifier lc = new LegoClassifier(reasoner);
 		lc.convertToAxioms(legos.toArray(new Lego[legos.size()]));
+
+		assertEquals("Wrong number of Axioms", 2, lc.getUnclassifiedAxioms().size());
+
+		assertEquals("unexpected node count before classification", 397320, reasoner.getClassifiedOntology().getNodeMap().size());
+
+		lc.classifyAxioms();
+
+		assertEquals("unexpected node count after classification", 397322, reasoner.getClassifiedOntology().getNodeMap().size());
+	}
+	
+	@Test
+	public void testSIMSnomedClassify() throws IOException, SAXException, JAXBException, PropertyVetoException, NoSuchAlgorithmException
+	{
+		ArrayList<LegoBI> legos = new ArrayList<>();
+		LegoList ll = LegoXMLUtils.readLegoList(this.getClass().getResourceAsStream("/Pressure ulcer observables.xml"));
+		for (Lego l : ll.getLego())
+		{
+			legos.add(SchemaToSimConversions.convert(l));
+		}
+
+		@SuppressWarnings("unchecked") 
+		IReasoner<String> reasoner = SnorocketReasoner.load(this.getClass().getResourceAsStream("/classifier_uuid.state"));
+
+		SIMClassifier lc = new SIMClassifier(reasoner);
+		lc.convertToAxioms(legos.toArray(new LegoBI[legos.size()]));
 
 		assertEquals("Wrong number of Axioms", 2, lc.getUnclassifiedAxioms().size());
 
