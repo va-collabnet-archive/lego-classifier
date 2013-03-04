@@ -300,8 +300,16 @@ public class SIMClassifier
 		}
 	}
 
-	private IConcept processMeasurement(INamedFeature<String> feature, MeasurementNodeBI<?> measurement)
+	private IConcept processMeasurement(INamedFeature<String> feature, MeasurementNodeBI<?> measurement) throws IOException
 	{
+		IConcept unitsConcept = null;
+		ConceptVersionBI conceptVersionBIUnits = getUnits(measurement); 
+		if (conceptVersionBIUnits != null)
+		{
+			// units are optional
+			unitsConcept = f.createConcept(conceptVersionBIUnits.getPrimUuid().toString());
+		}
+		
 		IConcept data;
 		if (measurement.getValue() instanceof PointBI)
 		{
@@ -413,20 +421,21 @@ public class SIMClassifier
 		{
 			throw new RuntimeException("invalid measurement '" + measurement.getClass().getName() + "'");
 		}
-		//TODO - note - one difference here with the old lego classification is that we have a unit on each point, instead of just one on top of the measurment.
-		//not sure if that is ok, or if one or the other is correct.
-		return data;
+		
+		if (unitsConcept != null)
+		{
+			// The units and datatype must be grouped
+			IConcept conjunction = f.createConjunction(unitsConcept, data);
+			return f.createExistential(roleGroup, conjunction);
+		}
+		else
+		{
+			return data;
+		}
 	}
 
 	private IConcept processPoint(INamedFeature<String> feature, PointBI point, Operator operator)
 	{
-		IConcept unitsConcept = null;
-		if (point.getUnitsOfMeasure() != null)
-		{
-			// units are optional
-			unitsConcept = f.createConcept(point.getUnitsOfMeasure().getPrimUuid().toString());
-		}
-		
 		IConcept data;
 		
 		if (point.getPointValue() instanceof Double || point.getPointValue() instanceof Float)
@@ -448,17 +457,75 @@ public class SIMClassifier
 				data = f.createDatatype(feature, operator, literal);
 			}
 		}
+		return data;
+	}
+	
+	private ConceptVersionBI getUnits(MeasurementNodeBI<?> measurement) throws IOException
+	{
+		//In SIM-API, each point has its own Units (optionally) but the classifier doesn't convert units, so we need to ensure they are all the same.
+		//Then, since they are all the same, we will just put the units on the measurement, rather than on each point.
 		
-		if (unitsConcept != null)
+		if (measurement.getValue() instanceof PointBI)
 		{
-			// The units and datatype must be grouped
-			IConcept conjunction = f.createConjunction(unitsConcept, data);
-			return f.createExistential(roleGroup, conjunction);
+			return ((PointBI)measurement.getValue()).getUnitsOfMeasure();
+		}
+		else if (measurement.getValue() instanceof BoundBI)
+		{
+			return getUnits((BoundBI)measurement.getValue());
+		}
+		else if (measurement.getValue() instanceof IntervalBI)
+		{
+			ConceptVersionBI lowerUnits = getUnits(((IntervalBI)measurement.getValue()).getLowerBound());
+			ConceptVersionBI upperUnits = getUnits(((IntervalBI)measurement.getValue()).getUpperBound());
+			if (lowerUnits != null && upperUnits != null)
+			{
+				if (!lowerUnits.getPrimUuid().equals(upperUnits.getPrimUuid()))
+				{
+					throw new IOException("Units must be the same throughout a Measurement when they are provided.");
+				}
+				return lowerUnits;
+			}
+			else if (lowerUnits != null)
+			{
+				return lowerUnits;
+			}
+			else
+			{
+				return upperUnits;
+			}
 		}
 		else
 		{
-			return data;
+			throw new IOException("Unsupported measurement type");
 		}
+	}
+	
+	private ConceptVersionBI getUnits(BoundBI bound) throws IOException
+	{
+		if (bound == null)
+		{
+			return null;
+		}
+		ConceptVersionBI units = null;
+		if (bound.getLowerLimit() != null)
+		{
+			units = bound.getLowerLimit().getUnitsOfMeasure();
+		}
+		if (bound.getUpperLimit() != null)
+		{
+			if (units == null)
+			{
+				return bound.getUpperLimit().getUnitsOfMeasure();
+			}
+			else if (bound.getUpperLimit().getUnitsOfMeasure() != null)
+			{
+				if (!units.getPrimUuid().equals(bound.getUpperLimit().getUnitsOfMeasure().getPrimUuid()))
+				{
+					throw new IOException("Units must be the same throughout a Measurement when they are provided.");
+				}
+			}
+		}
+		return units;
 	}
 
 	private IConcept processRelationship(ExpressionRelBI r) throws IOException

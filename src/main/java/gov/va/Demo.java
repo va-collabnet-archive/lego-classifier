@@ -8,11 +8,15 @@ package gov.va;
 import gov.va.legoEdit.formats.LegoXMLUtils;
 import gov.va.legoEdit.model.schemaModel.Lego;
 import gov.va.legoEdit.model.schemaModel.LegoList;
+import gov.va.legoEdit.storage.sim.util.SchemaToSimConversions;
+import gov.va.sim.lego.LegoBI;
+import java.beans.PropertyVetoException;
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,7 +46,7 @@ public Demo() {
     }
     
     @SuppressWarnings("unchecked")
-    public void start() throws FileNotFoundException, JAXBException {
+    public void start() throws JAXBException, PropertyVetoException, UnsupportedEncodingException, NoSuchAlgorithmException, IOException {
         
         // 1. Load the base state
     	System.out.println("Loading base state from classifier_uuid.state");
@@ -75,20 +79,20 @@ public Demo() {
         // 2. Load Lego
         System.out.println(
         		"Transforming Pressure ulcer observables lego into axioms");
-        ArrayList<Lego> legos = new ArrayList<Lego>();
+        ArrayList<LegoBI> legos = new ArrayList<>();
         LegoList ll = LegoXMLUtils.readLegoList(
         		this.getClass().getResourceAsStream(
         				"/Nested.xml"));
         for (Lego l : ll.getLego()) {
-            legos.add(l);
+            legos.add(SchemaToSimConversions.convert(l));
         }
         
-        LegoClassifier lc = new LegoClassifier(reasoner);        
-        lc.convertToAxioms(legos.toArray(new Lego[legos.size()]));
+        SIMClassifier sc = new SIMClassifier(reasoner);        
+        sc.convertToAxioms(legos.toArray(new LegoBI[legos.size()]));
 
         // Extract the UUIDs for the Assertions 
         final Set<String> assertionUUIDs = new HashSet<>();
-        for (IAxiom axiom: lc.getUnclassifiedAxioms()) {
+        for (IAxiom axiom: sc.getUnclassifiedAxioms()) {
         	if (axiom instanceof IConceptInclusion) {
         		IConceptInclusion ci = (IConceptInclusion) axiom;
         		if (ci.lhs() instanceof INamedConcept<?>) {
@@ -99,7 +103,7 @@ public Demo() {
         
         // 3. Classify incrementally
         System.out.println("Classifying incrementally");
-        lc.classifyAxioms();
+        sc.classifyAxioms();
         
         // 4. Retrieve taxonomy
         System.out.println("Retrieving taxonomy");
@@ -128,7 +132,7 @@ public Demo() {
         
         try {
 			d.start();
-		} catch (FileNotFoundException | JAXBException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
     }
