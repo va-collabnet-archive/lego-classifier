@@ -18,6 +18,7 @@ import gov.va.sim.act.expression.node.TextNodeBI;
 import gov.va.sim.lego.LegoBI;
 import gov.va.sim.measurement.BoundBI;
 import gov.va.sim.measurement.IntervalBI;
+import gov.va.sim.measurement.PlaceholderBI;
 import gov.va.sim.measurement.PointBI;
 import java.io.File;
 import java.io.IOException;
@@ -445,10 +446,9 @@ public class SIMClassifier
 		}
 		else
 		{
-			if (point.getPointValue().longValue() == Long.MIN_VALUE)
+			if (point instanceof PlaceholderBI)
 			{
-				//TODO handle constants.... maybe I don't care.
-				ILiteral literal = f.createStringLiteral("constant...");
+				ILiteral literal = f.createStringLiteral(((PlaceholderBI)point).getPlaceholder().name());
 				data = f.createDatatype(feature, operator, literal);
 			}
 			else
