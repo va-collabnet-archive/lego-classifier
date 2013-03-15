@@ -7,17 +7,29 @@
 	<version>1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>Lego Classifier Utility</name>
+	
+	<scm>
+		<connection>scm:svn:https://csfe.aceworkspace.net/svn/repos/lego-editor/trunk/lego-classifier</connection>
+		<developerConnection>scm:svn:https://csfe.aceworkspace.net/svn/repos/lego-editor/trunk/lego-classifier</developerConnection>
+		<url>https://csfe.aceworkspace.net/integration/viewvc/viewvc.cgi/trunk/lego-classifier/?root=lego-editor&amp;system=exsy1002</url>
+	</scm>
+
+	<properties>
+		<lego-editor-sim-api.version>1.0-SNAPSHOT</lego-editor-sim-api.version>
+		<lego-editor.version>0.57-SNAPSHOT</lego-editor.version>
+		<maven-release-plugin.version>2.0</maven-release-plugin.version>
+	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>gov.va</groupId>
 			<artifactId>lego-editor-sim-api</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<version>${lego-editor-sim-api.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>gov.va</groupId>
 			<artifactId>lego-editor</artifactId>
-			<version>0.56-SNAPSHOT</version>
+			<version>${lego-editor.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>au.csiro</groupId>
@@ -60,6 +72,15 @@
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<configuration>
+					<preparationGoals>clean install</preparationGoals>
+					<autoVersionSubmodules>true</autoVersionSubmodules>
+					<remoteTagging>true</remoteTagging>
 				</configuration>
 			</plugin>
 		</plugins>
