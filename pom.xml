@@ -14,8 +14,8 @@
 	</scm>
 
 	<properties>
-		<lego-editor-sim-api.version>1.0</lego-editor-sim-api.version>
-		<lego-editor.version>0.57</lego-editor.version>
+		<lego-editor-sim-api.version>1.1</lego-editor-sim-api.version>
+		<lego-editor.version>1.0</lego-editor.version>
 		<maven-release-plugin.version>2.0</maven-release-plugin.version>
 	</properties>
 
