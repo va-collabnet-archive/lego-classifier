@@ -3,14 +3,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>lego-classifier</artifactId>
 	<groupId>gov.va</groupId>
-	<version>1.2-SNAPSHOT</version>
+	<version>1.2</version>
 	<packaging>jar</packaging>
 	<name>Lego Classifier Utility</name>
 
 	<scm>
-		<connection>scm:svn:https://csfe.aceworkspace.net/svn/repos/lego-editor/trunk/lego-classifier</connection>
-		<developerConnection>scm:svn:https://csfe.aceworkspace.net/svn/repos/lego-editor/trunk/lego-classifier</developerConnection>
-		<url>https://csfe.aceworkspace.net/integration/viewvc/viewvc.cgi/trunk/lego-classifier/?root=lego-editor&amp;system=exsy1002</url>
+		<connection>scm:svn:https://csfe.aceworkspace.net/svn/repos/lego-editor/tags/lego-classifier/lego-classifier-1.2</connection>
+		<developerConnection>scm:svn:https://csfe.aceworkspace.net/svn/repos/lego-editor/tags/lego-classifier/lego-classifier-1.2</developerConnection>
+		<url>https://csfe.aceworkspace.net/integration/viewvc/viewvc.cgi/tags/lego-classifier/lego-classifier-1.2?root=lego-editor&amp;system=exsy1002</url>
 	</scm>
 
 	<properties>
